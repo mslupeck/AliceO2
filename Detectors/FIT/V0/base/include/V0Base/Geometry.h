@@ -55,28 +55,31 @@ class Geometry
   static constexpr float sDzScint = 4;                     // thickness of scintillator
   static constexpr float sPhiMinScint = 0;                 // miminum angle, at which the first sector starts
   static constexpr float sDphiScint = 45;                  // relative phi angle at which the first sector ends
-  static constexpr float sGlobalPhiRotation = 90;          // global phi rotation (to enable making two detector halves, possible to separate vertically)
+  static constexpr float sGlobalPhiRotation = 0;           // global phi rotation (to enable making two detector halves, possible to separate vertically)
   static constexpr float sDySeparationScint = sDrSeparationScint;
   static constexpr int sBaseNumberOfSectors = 8; // number of sectors
   // TODO: Adjust the sZposition once the simulation geometry is implemented, T0 starts at 328
   // at sZposition==320, there is a gap (to be filled with fibers and support) of 8 cm between the plastic of V0+ and aluminum covers of T0+
   static constexpr float sZposition = 320 - sDzScint / 2;                                                // z-position of the geometrical center of the detectors sensitive part
   static constexpr int sNumberOfRings = 5;                                                               // number of rings
-  static constexpr float sRingRadiiScint[sNumberOfRings + 1] = { 4.07, 7.3, 12.9, 21.25, 38.7, 71.975 }; // average ring radii
+  static constexpr float sRingRadiiScint[sNumberOfRings + 1] = { 4.01, 7.3, 12.9, 21.25, 38.7, 72.115 }; // average ring radii
+  static constexpr float sRingInnerRadiusDx = -0.15;                                                     // shift of the inner radius origin
+  static constexpr char sCellTypes[sBaseNumberOfSectors] = { 'a', 'b', 'b', 'a', 'a', 'b', 'b', 'a'};
 
  private:
   void initializeVectors();
+  void initializeScintCells();
   void initializeLuts();
 
   void buildGeometry();
-  void assembleSectors(TGeoVolumeAssembly* volV0);
-  TGeoVolumeAssembly* buildSector(uint16_t iSector);
+  void assembleScintSectors(TGeoVolumeAssembly* volV0);
+  TGeoVolumeAssembly* buildScintSector(uint16_t iSector);
 
-  std::vector<float> mvrAvgScint; // average ring radii (index 0 -> ring 1 min, index 1 -> ring 1 max and ring 2 min, ... index 5 -> ring 5 max)
+  std::vector<float> mvrAvgScint;         // average ring radii (index 0 -> ring 1 min, index 1 -> ring 1)
   // The following radii include separation between rings
-  std::vector<float> mvrMinScint; // lower radii of a ring (.at(0) -> ring 1, .at(4) -> ring 5)
-  std::vector<float> mvrMaxScint; // upper radii of a ring (.at(0) -> ring 1, .at(4) -> ring 5)
-  std::vector<TGeoRotation*> mvPhiRot;
+  std::vector<float> mvrMinScint;         // inner radii of a ring (.at(0) -> ring 1, .at(4) -> ring 5)
+  std::vector<float> mvrMaxScint;         // outer radii of a ring (.at(0) -> ring 1, .at(4) -> ring 5)
+  std::vector<TGeoMatrix*> mvSectorTrans; // transformations of sectors (.at(0) -> sector 1)
 
   int mGeometryType; // same meaning as initType in constructor
 
