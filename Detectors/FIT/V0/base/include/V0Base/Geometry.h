@@ -53,8 +53,6 @@ class Geometry
   static constexpr float sEpsilon = 0.01;                  // variable used to make sure one spatial dimension is infinitesimaly larger than the other
   static constexpr float sDrSeparationScint = 0.03 + 0.04; // paint thickness + half of separation gap
   static constexpr float sDzScint = 4;                     // thickness of scintillator
-  static constexpr float sPhiMinScint = 0;                 // miminum angle, at which the first sector starts
-  static constexpr float sDphiScint = 45;                  // relative phi angle at which the first sector ends
   static constexpr float sGlobalPhiRotation = 0;           // global phi rotation (to enable making two detector halves, possible to separate vertically)
   static constexpr float sDySeparationScint = sDrSeparationScint;
   static constexpr int sBaseNumberOfSectors = 8; // number of sectors
@@ -75,7 +73,7 @@ class Geometry
   void assembleScintSectors(TGeoVolumeAssembly* volV0);
   TGeoVolumeAssembly* buildScintSector(uint16_t iSector);
 
-  std::vector<float> mvrAvgScint;         // average ring radii (index 0 -> ring 1 min, index 1 -> ring 1)
+  std::vector<float> mvrAvgScint;         // average ring radii (index 0 -> ring 1 min, index 1 -> ring 1 max and ring 2 min, ... index 5 -> ring 5 max)
   // The following radii include separation between rings
   std::vector<float> mvrMinScint;         // inner radii of a ring (.at(0) -> ring 1, .at(4) -> ring 5)
   std::vector<float> mvrMaxScint;         // outer radii of a ring (.at(0) -> ring 1, .at(4) -> ring 5)
