@@ -65,12 +65,18 @@ Detector::Detector(Bool_t isActive)
 void Detector::InitializeO2Detector()
 {
   LOG(INFO) << "FIT_V0: Initializing O2 detector. Adding sensitive volume.";
-  TGeoVolume* volSensitive = gGeoManager->GetVolume("FITV0_scint");
-  if (!volSensitive) {
-    LOG(FATAL) << "Can't find FIT V0 sensitive volume: scint";
-  } else {
-    AddSensitiveVolume(volSensitive);
-    LOG(INFO) << "FIT-V0: Sensitive volume: " << volSensitive->GetName() << "   " << volSensitive->GetNumber();
+
+  std::string volSensitiveName;
+  TGeoVolume* volSensitive;
+  for (int i = 0; i < mGeometry->getSensitiveVolumeNames().size(); i++) {
+    volSensitiveName = mGeometry->getSensitiveVolumeNames().at(i);
+    volSensitive = gGeoManager->GetVolume(volSensitiveName.c_str());
+    if (!volSensitive) {
+      LOG(FATAL) << "FV0: Can't find sensitive volume " << volSensitiveName;
+    } else {
+      AddSensitiveVolume(volSensitive);
+      LOG(INFO) << "FV0: Sensitive volume added: " << volSensitive->GetName();
+    }
   }
 }
 

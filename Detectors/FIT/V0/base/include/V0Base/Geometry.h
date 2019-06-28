@@ -64,6 +64,8 @@ class Geometry
   static constexpr float sRingInnerRadiusDx = -0.15;                                                     // shift of the inner radius origin
   static constexpr char sCellTypes[sBaseNumberOfSectors] = { 'a', 'b', 'b', 'a', 'a', 'b', 'b', 'a'};
 
+  const std::vector<std::string> getSensitiveVolumeNames() { return mvSensitiveVolumeNames; };
+
  private:
   void initializeVectors();
   void initializeScintCells();
@@ -72,6 +74,11 @@ class Geometry
   void buildGeometry();
   void assembleScintSectors(TGeoVolumeAssembly* volV0);
   TGeoVolumeAssembly* buildScintSector(uint16_t iSector);
+
+  inline static const std::string sScintSectorName = "SCINTSECTOR";
+  inline static const std::string sScintCellName = "SCINTCELL";
+
+  std::vector<std::string> mvSensitiveVolumeNames;
 
   std::vector<float> mvrAvgScint;         // average ring radii (index 0 -> ring 1 min, index 1 -> ring 1 max and ring 2 min, ... index 5 -> ring 5 max)
   // The following radii include separation between rings

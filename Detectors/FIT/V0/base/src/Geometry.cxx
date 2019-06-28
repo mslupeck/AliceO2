@@ -69,9 +69,9 @@ void Geometry::initializeVectors()
     float phi = isector * 45;
 
     std::stringstream ssRotName, ssReflName, ssTotalTransName;
-    ssRotName << "rotationSector" << isector;
-    ssReflName << "reflectSector" << isector;
-    ssTotalTransName << "totalTransformSector" << isector;
+    ssRotName << "FV0_rotationSector" << isector;
+    ssReflName << "FV0_reflectSector" << isector;
+    ssTotalTransName << "FV0_totalTransformSector" << isector;
 
     TGeoRotation* rot = new TGeoRotation(ssRotName.str().c_str());            // rotation of the sector
     TGeoRotation* refl = new TGeoRotation(ssReflName.str().c_str());          // reflection of the sector
@@ -133,7 +133,7 @@ void Geometry::initializeScintCells()
   float rHoleSmall = 0.265;                           // radius of the small holes
   float rHoleLarge = 0.415;                           // radius of the large holes
   float xHoleCut = 0.2;                               // width of extension of hole 1, 2 and 7 in the "a" cell
-  float dxHole = sDrSeparationScint + xHoleCut;     // x-placement of holes 1, 2 and 7 in the "a" cell
+  float dxHole = sDrSeparationScint + xHoleCut;       // x-placement of holes 1, 2 and 7 in the "a" cell
 
   // Sector separation gap shape
   std::string secSepShapeName = "FV0_scintSectorSeparation";
@@ -181,7 +181,7 @@ void Geometry::initializeScintCells()
     // 0--------------> x
 
     std::stringstream aCellName;
-    aCellName << "FV0_scint_cell_a" << ir + 1;
+    aCellName << "FV0" << sScintCellName << "a" << ir + 1;
 
     LOG(INFO) << "FV0 Geometry::initializeScintCells(): Initializing cell " << aCellName.str();
 
@@ -314,6 +314,7 @@ void Geometry::initializeScintCells()
     // Cell volume
     TGeoVolume* aCell = new TGeoVolume(aCellName.str().c_str(), aCellCs, kMed);
     aCell->RegisterYourself();
+    mvSensitiveVolumeNames.push_back(aCell->GetName());
 
     // "b"-type cells
     // 
@@ -330,7 +331,7 @@ void Geometry::initializeScintCells()
     // 0--------------> x
 
     std::stringstream bCellName;
-    bCellName << "FV0_scint_cell_b" << ir + 1;
+    bCellName << "FV0" << sScintCellName << "b" << ir + 1;
 
     LOG(INFO) << "FV0 Geometry::initializeScintCells(): Initializing cell " << bCellName.str();
 
@@ -441,6 +442,7 @@ void Geometry::initializeScintCells()
     // Cell volume
     TGeoVolume* bCell = new TGeoVolume(bCellName.str().c_str(), bCellCs, kMed);
     bCell->RegisterYourself();
+    mvSensitiveVolumeNames.push_back(bCell->GetName());
   }
 }
 
@@ -458,7 +460,7 @@ void Geometry::buildGeometry()
 
   // Top volume of FIT V0 detector
   TGeoVolumeAssembly* volV0 = new TGeoVolumeAssembly("FITV0");
-  LOG(INFO) << "Geometry::buildGeometry()::Volume name = " << volV0->GetName();
+  LOG(INFO) << "FV0 Geometry::buildGeometry()::Volume name = " << volV0->GetName();
 
   assembleScintSectors(volV0);
 
@@ -469,9 +471,9 @@ void Geometry::buildGeometry()
 
 void Geometry::assembleScintSectors(TGeoVolumeAssembly* volV0)
 {
-  TGeoVolumeAssembly* v0scint = new TGeoVolumeAssembly("FITV0_scint");
-  TGeoVolumeAssembly* v0ScintLeft = new TGeoVolumeAssembly("FITV0_scint_left");
-  TGeoVolumeAssembly* v0ScintRight = new TGeoVolumeAssembly("FITV0_scint_right");
+  TGeoVolumeAssembly* v0scint = new TGeoVolumeAssembly("FV0SCINT");
+  TGeoVolumeAssembly* v0ScintLeft = new TGeoVolumeAssembly("FV0SCINTLEFT");
+  TGeoVolumeAssembly* v0ScintRight = new TGeoVolumeAssembly("FV0SCINTRIGHT");
 
   for (uint16_t isector = 0; isector < ceil(mvSectorTrans.size() / 2); isector++) {
     TGeoVolumeAssembly* sector = buildScintSector(isector);
@@ -491,7 +493,7 @@ void Geometry::assembleScintSectors(TGeoVolumeAssembly* volV0)
 TGeoVolumeAssembly* Geometry::buildScintSector(uint16_t iSector)
 {
   std::stringstream ssSectorName;
-  ssSectorName << "FV0_scint_sector" << iSector + 1;
+  ssSectorName << "FV0" << sScintSectorName << iSector + 1;
 
   LOG(INFO) << "FV0 Geometry::buildScintSector(): building sector " << ssSectorName.str();
 
@@ -499,7 +501,7 @@ TGeoVolumeAssembly* Geometry::buildScintSector(uint16_t iSector)
   
   for (int i = 0; i < sNumberOfRings; i++) {
     std::stringstream cellName;
-    cellName << "FV0_scint_cell_" << sCellTypes[iSector] << i + 1;
+    cellName << "FV0" << sScintCellName << sCellTypes[iSector] << i + 1;
 
     TGeoVolume* cell = gGeoManager->GetVolume(cellName.str().c_str());
 
