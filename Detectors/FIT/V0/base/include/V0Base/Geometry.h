@@ -19,6 +19,7 @@
 #include <vector>
 #include <TGeoMatrix.h>
 #include <TGeoVolume.h>
+#include "TVirtualMC.h"
 
 namespace o2
 {
@@ -64,6 +65,13 @@ class Geometry
   static constexpr float sRingInnerRadiusDx = -0.15;                                                     // shift of the inner radius origin
   static constexpr char sCellTypes[sBaseNumberOfSectors] = { 'a', 'b', 'b', 'a', 'a', 'b', 'b', 'a'};
 
+  /// Get the unique ID of the current scintillator cell during simulation.
+  /// The ID is a number from 1 to 40 starting from the first cell left of the y-axis
+  /// and continues counterclockwise one ring at a time.
+  /// \param  fMC  The virtual Monte Carlo interface.
+  const int getCurrentCellId(TVirtualMC* fMC);
+
+  /// Get the names of all the sensitive volumes of the geometry.
   const std::vector<std::string> getSensitiveVolumeNames() { return mvSensitiveVolumeNames; };
 
  private:

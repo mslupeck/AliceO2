@@ -123,8 +123,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
     Int_t trackID = fMC->GetStack()->GetCurrentTrackNumber();
 
     // Get unique ID of the detector cell (sensitive volume)
-    Int_t cellId = -1;
-    fMC->CurrentVolOffID(0, cellId);
+    Int_t cellId = mGeometry->getCurrentCellId(fMC);
 
     addHit(trackID, cellId,
            mTrackData.mPositionStart.Vect(), positionStop.Vect(),

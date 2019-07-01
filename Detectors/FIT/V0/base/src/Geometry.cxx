@@ -40,6 +40,16 @@ Geometry::Geometry(const Geometry& geom)
   this->mGeometryType = geom.mGeometryType;
 }
 
+const int Geometry::getCurrentCellId(TVirtualMC* fMC) {
+  int ring = -1;
+  int sector = -1;
+
+  fMC->CurrentVolOffID(0, ring);
+  fMC->CurrentVolOffID(1, sector);
+
+  return sector + 8 * (ring - 1);
+}
+
 void Geometry::initializeVectors()
 {
   // RADII
