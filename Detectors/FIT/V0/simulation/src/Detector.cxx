@@ -151,7 +151,7 @@ o2::v0::Hit* Detector::addHit(Int_t trackId, Int_t cellId,
 // TODO: -> verify Todos inside the function
 void Detector::createMaterials()
 {
-  LOG(INFO) << "FIT_V0: Creating materials";
+  LOG(INFO) << "FV0: Creating materials";
 
   // Air mixture
   const Int_t nAir = 4;
@@ -167,6 +167,13 @@ void Detector::createMaterials()
   Float_t wScint[nScint] = { 0.016, 0.984 };
   Float_t dScint = 1.023;
 
+  // Plastic mixture; TODO: Verify numbers, these are taken from previous detector
+  const Int_t nPlast = 3;
+  Float_t aPlast[nPlast] = { 1, 12.01, 15.99 };
+  Float_t zPlast[nPlast] = { 1, 6, 8 };
+  Float_t wPlast[nPlast] = { 0.08, 0.32, 0.6 } ;
+  Float_t dPlast = 1.18;
+
   Int_t matId = 0;                  // tmp material id number
   const Int_t unsens = 0, sens = 1; // sensitive or unsensitive medium
 
@@ -180,7 +187,7 @@ void Detector::createMaterials()
   Int_t fieldType;
   Float_t maxField;
   o2::base::Detector::initFieldTrackingParams(fieldType, maxField);
-  LOG(INFO) << "Detector::createMaterials >>>>> fieldType " << fieldType << " maxField " << maxField;
+  LOG(INFO) << "FV0 Detector::createMaterials(): fieldType " << fieldType << ", maxField " << maxField;
 
   // TODO: Comment out two lines below once tested that the above function assigns field type and max correctly
   fieldType = 2;
@@ -190,16 +197,21 @@ void Detector::createMaterials()
   o2::base::Detector::Medium(Air, "Air$", matId, unsens, fieldType, maxField, tmaxfd, stemax, deemax, epsil, stmin);
 
   o2::base::Detector::Mixture(++matId, "Scintillator$", aScint, zScint, dScint, nScint, wScint);
-  o2::base::Detector::Medium(Scintillator, "Scintillator$", matId, unsens, fieldType, maxField, tmaxfd, stemax, deemax, epsil, stmin);
+  o2::base::Detector::Medium(Scintillator, "Scintillator$", matId, unsens, fieldType, maxField, tmaxfd, stemax, deemax,
+                             epsil, stmin);
 
-  LOG(DEBUG) << "Detector::createMaterials -----> matId = " << matId;
+  o2::base::Detector::Mixture(++matId, "Plastic$", aPlast, zPlast, dPlast, nPlast, wPlast);
+  o2::base::Detector::Medium(Plastic, "Plastic$", matId, unsens, fieldType, maxField, tmaxfd, stemax, deemax, epsil,
+                             stmin);
+
+  LOG(DEBUG) << "FV0 Detector::createMaterials(): matId = " << matId;
 }
 
 void Detector::ConstructGeometry()
 {
-  LOG(INFO) << "FIT_V0: Constructing geometry";
+  LOG(INFO) << "FV0: Constructing geometry";
   createMaterials();
-  mGeometry = new Geometry(Geometry::eOnlySensitive);
+  mGeometry = new Geometry(Geometry::eFull);
 }
 
 void Detector::Register()

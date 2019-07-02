@@ -31,6 +31,9 @@ Geometry::Geometry(EGeoType initType)
   mGeometryType = initType;
   initializeVectors();
   initializeScintCells();
+  if (mGeometryType == eFull) {
+    initializePlasticCells();
+  }
   initializeLuts();
   buildGeometry();
 }
@@ -128,30 +131,27 @@ void Geometry::initializeVectors()
   }
 }
 
-void Geometry::initializeScintCells()
-{
+void Geometry::initializeCells(std::string cellType, float zThickness, TGeoMedium* medium) {
   // Creating the two types of cells, "a" and "b", for each ring.
   // All sectors can be assembled with these cells.
   //
   // The reference to "a" and "b" can be understood with the CAD drawings of the detector.
 
-  LOG(INFO) << "FV0 Geometry::initializeScintCells(): Initializing scintillator cells.";
+  LOG(INFO) << "FV0 Geometry::initializeCells(): Initializing " << cellType << " cells.";
   
-  TGeoMedium* kMed = gGeoManager->GetMedium("V0_Scintillator$");
-  
-  float dz = sDzScint / 2;                            // half depth of the scintillator
+  float dz = zThickness / 2;                          // half depth of the cells
   float rHoleSmall = 0.265;                           // radius of the small holes
   float rHoleLarge = 0.415;                           // radius of the large holes
   float xHoleCut = 0.2;                               // width of extension of hole 1, 2 and 7 in the "a" cell
   float dxHole = sDrSeparationScint + xHoleCut;       // x-placement of holes 1, 2 and 7 in the "a" cell
 
   // Sector separation gap shape
-  std::string secSepShapeName = "FV0_scintSectorSeparation";
+  std::string secSepShapeName = "FV0_" + cellType + "SectorSeparation";
   new TGeoBBox(secSepShapeName.c_str(), mvrMaxScint.back(), sDrSeparationScint, dz);
 
   // Sector separation gap rotations
-  std::string secSepRot45Name = "FV0_secSepRot45";
-  std::string secSepRot90Name = "FV0_secSepRot90";
+  std::string secSepRot45Name = "FV0_" + cellType + "SecSepRot45";
+  std::string secSepRot90Name = "FV0_" + cellType + "SecSepRot90";
 
   TGeoRotation* secSepRot45 = new TGeoRotation(secSepRot45Name.c_str(), 45, 0, 0);  
   TGeoRotation* secSepRot90 = new TGeoRotation(secSepRot90Name.c_str(), 90, 0, 0);
@@ -160,10 +160,10 @@ void Geometry::initializeScintCells()
   secSepRot90->RegisterYourself();
 
   // Hole shapes
-  std::string holeSmallName = "FV0_scintHoleSmall";
-  std::string holeLargeName = "FV0_scintHoleLarge";
-  std::string holeSmallCutName = "FV0_scintHoleSmallCut";
-  std::string holeLargeCutName = "FV0_scintHoleLargeCut";
+  std::string holeSmallName = "FV0_" + cellType + "HoleSmall";
+  std::string holeLargeName = "FV0_" + cellType + "HoleLarge";
+  std::string holeSmallCutName = "FV0_" + cellType + "HoleSmallCut";
+  std::string holeLargeCutName = "FV0_" + cellType + "HoleLargeCut";
 
   new TGeoTube(holeSmallName.c_str(), 0, rHoleSmall, dz);  
   new TGeoTube(holeLargeName.c_str(), 0, rHoleLarge, dz);
@@ -191,9 +191,9 @@ void Geometry::initializeScintCells()
     // 0--------------> x
 
     std::stringstream aCellName;
-    aCellName << "FV0" << sScintCellName << "a" << ir + 1;
+    aCellName << "FV0" << cellType << "a" << ir + 1;
 
-    LOG(INFO) << "FV0 Geometry::initializeScintCells(): Initializing cell " << aCellName.str();
+    LOG(INFO) << "FV0 Geometry::initializeCells(): Initializing cell " << aCellName.str();
 
     // Base shape
     std::string aCellShapeName = aCellName.str() + "Shape";
@@ -316,13 +316,13 @@ void Geometry::initializeScintCells()
       aBoolFormula.append("-" + holeLargeName + ":" + aHole8TransName);
     }
 
-    LOG(INFO) << "FV0 Geometry::initializeScintCells(): Composite shape formula: " << aBoolFormula;
+    LOG(INFO) << "FV0 Geometry::initializeCells(): Composite shape formula: " << aBoolFormula;
 
     std::string aCellCSName = aCellName.str() + "CS";
     TGeoCompositeShape* aCellCs = new TGeoCompositeShape(aCellCSName.c_str(), aBoolFormula.c_str());
 
     // Cell volume
-    TGeoVolume* aCell = new TGeoVolume(aCellName.str().c_str(), aCellCs, kMed);
+    TGeoVolume* aCell = new TGeoVolume(aCellName.str().c_str(), aCellCs, medium);
     aCell->RegisterYourself();
     mvSensitiveVolumeNames.push_back(aCell->GetName());
 
@@ -341,9 +341,9 @@ void Geometry::initializeScintCells()
     // 0--------------> x
 
     std::stringstream bCellName;
-    bCellName << "FV0" << sScintCellName << "b" << ir + 1;
+    bCellName << "FV0" << cellType << "b" << ir + 1;
 
-    LOG(INFO) << "FV0 Geometry::initializeScintCells(): Initializing cell " << bCellName.str();
+    LOG(INFO) << "FV0 Geometry::initializeCells(): Initializing cell " << bCellName.str();
 
     // Base shape
     std::string bCellShapeName = bCellName.str() + "Shape";
@@ -450,10 +450,21 @@ void Geometry::initializeScintCells()
     TGeoCompositeShape* bCellCs = new TGeoCompositeShape(bCellCSName.c_str(), bBoolFormula.c_str());
 
     // Cell volume
-    TGeoVolume* bCell = new TGeoVolume(bCellName.str().c_str(), bCellCs, kMed);
+    TGeoVolume* bCell = new TGeoVolume(bCellName.str().c_str(), bCellCs, medium);
     bCell->RegisterYourself();
     mvSensitiveVolumeNames.push_back(bCell->GetName());
   }
+}
+
+void Geometry::initializeScintCells()
+{
+  TGeoMedium* kMed = gGeoManager->GetMedium("V0_Scintillator$");
+  initializeCells(sScintCellName, sDzScint, kMed);
+}
+
+void Geometry::initializePlasticCells() {
+  TGeoMedium* kMed = gGeoManager->GetMedium("V0_Plastic$");
+  initializeCells(sPlastCellName, sDzPlast, kMed);
 }
 
 void Geometry::initializeLuts()
@@ -473,6 +484,9 @@ void Geometry::buildGeometry()
   LOG(INFO) << "FV0 Geometry::buildGeometry()::Volume name = " << volV0->GetName();
 
   assembleScintSectors(volV0);
+  if (mGeometryType == eFull) {
+    assemblePlasticSectors(volV0);
+  }
 
   TGeoTranslation* trGlobalZshift = new TGeoTranslation(0, 0, sZposition);
 
@@ -486,39 +500,59 @@ void Geometry::assembleScintSectors(TGeoVolumeAssembly* volV0)
   TGeoVolumeAssembly* v0ScintRight = new TGeoVolumeAssembly("FV0SCINTRIGHT");
 
   for (uint16_t isector = 0; isector < ceil(mvSectorTrans.size() / 2); isector++) {
-    TGeoVolumeAssembly* sector = buildScintSector(isector);
+    TGeoVolumeAssembly* sector = buildSector(sScintCellName, isector);
     v0ScintLeft->AddNode(sector, isector + 1, mvSectorTrans.at(isector));
   }
   
   for (uint16_t isector = ceil(mvSectorTrans.size() / 2); isector < mvSectorTrans.size(); isector++) {
-    TGeoVolumeAssembly* sector = buildScintSector(isector);
+    TGeoVolumeAssembly* sector = buildSector(sScintCellName, isector);
     v0ScintRight->AddNode(sector, isector + 1, mvSectorTrans.at(isector));
   }
   
   v0scint->AddNode(v0ScintLeft, 1);
-  v0scint->AddNode(v0ScintRight, 2);
+  v0scint->AddNode(v0ScintRight, 1);
   volV0->AddNode(v0scint, 1);
 }
 
-TGeoVolumeAssembly* Geometry::buildScintSector(uint16_t iSector)
+void Geometry::assemblePlasticSectors(TGeoVolumeAssembly* volV0) {
+  TGeoVolumeAssembly* v0Plast = new TGeoVolumeAssembly("FV0PLAST");
+  TGeoVolumeAssembly* v0PlastLeft = new TGeoVolumeAssembly("FV0PLASTLEFT");
+  TGeoVolumeAssembly* v0PlastRight = new TGeoVolumeAssembly("FV0PLASTRIGHT");
+
+  for (uint16_t isector = 0; isector < ceil(mvSectorTrans.size() / 2); isector++) {
+    TGeoVolumeAssembly* sector = buildSector(sPlastCellName, isector);
+    v0PlastLeft->AddNode(sector, isector + 1, mvSectorTrans.at(isector));
+  }
+  
+  for (uint16_t isector = ceil(mvSectorTrans.size() / 2); isector < mvSectorTrans.size(); isector++) {
+    TGeoVolumeAssembly* sector = buildSector(sPlastCellName, isector);
+    v0PlastRight->AddNode(sector, isector + 1, mvSectorTrans.at(isector));
+  }
+  
+  v0Plast->AddNode(v0PlastLeft, 1);
+  v0Plast->AddNode(v0PlastRight, 1);
+  volV0->AddNode(v0Plast, 1, new TGeoTranslation(0, 0, sDzScint / 2));
+}
+
+TGeoVolumeAssembly* Geometry::buildSector(std::string cellType, int iSector)
 {
   std::stringstream ssSectorName;
-  ssSectorName << "FV0" << sScintSectorName << iSector + 1;
+  ssSectorName << "FV0" << cellType << iSector + 1;
 
-  LOG(INFO) << "FV0 Geometry::buildScintSector(): building sector " << ssSectorName.str();
+  LOG(DEBUG) << "FV0 Geometry::buildSector(): building sector " << ssSectorName.str();
 
   TGeoVolumeAssembly* sector = new TGeoVolumeAssembly(ssSectorName.str().c_str());
   
   for (int i = 0; i < sNumberOfRings; i++) {
     std::stringstream cellName;
-    cellName << "FV0" << sScintCellName << sCellTypes[iSector] << i + 1;
+    cellName << "FV0" << cellType << sCellTypes[iSector] << i + 1;
 
     TGeoVolume* cell = gGeoManager->GetVolume(cellName.str().c_str());
 
     if (!cell) {
-      LOG(WARNING) << "FV0: Couldn't find scintillator cell " << cellName.str();
+      LOG(WARNING) << "FV0: Couldn't find cell volume " << cellName.str();
     } else {
-      LOG(INFO) << "FV0 Geometry::buildScintSector(): adding cell " << cellName.str();
+      LOG(DEBUG) << "FV0 Geometry::buildSector(): adding cell volume " << cellName.str();
       sector->AddNode(cell, i + 1);
     }    
   }

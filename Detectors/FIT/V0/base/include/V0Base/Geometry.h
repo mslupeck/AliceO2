@@ -54,6 +54,7 @@ class Geometry
   static constexpr float sEpsilon = 0.01;                  // variable used to make sure one spatial dimension is infinitesimaly larger than the other
   static constexpr float sDrSeparationScint = 0.03 + 0.04; // paint thickness + half of separation gap
   static constexpr float sDzScint = 4;                     // thickness of scintillator
+  static constexpr float sDzPlast = 1;                     // thickness of fiber plastic
   static constexpr float sGlobalPhiRotation = 0;           // global phi rotation (to enable making two detector halves, possible to separate vertically)
   static constexpr float sDySeparationScint = sDrSeparationScint;
   static constexpr int sBaseNumberOfSectors = 8; // number of sectors
@@ -76,15 +77,20 @@ class Geometry
 
  private:
   void initializeVectors();
+  void initializeCells(const std::string cellType, const float zThickness, TGeoMedium* medium);
   void initializeScintCells();
+  void initializePlasticCells();
   void initializeLuts();
 
   void buildGeometry();
   void assembleScintSectors(TGeoVolumeAssembly* volV0);
-  TGeoVolumeAssembly* buildScintSector(uint16_t iSector);
+  void assemblePlasticSectors(TGeoVolumeAssembly* volV0);
+  TGeoVolumeAssembly* buildSector(std::string cellType, int iSector);
 
   inline static const std::string sScintSectorName = "SCINTSECTOR";
   inline static const std::string sScintCellName = "SCINTCELL";
+  inline static const std::string sPlastSectorName = "PLASTSECTOR";
+  inline static const std::string sPlastCellName = "PLASTSECTOR";
 
   std::vector<std::string> mvSensitiveVolumeNames;
 

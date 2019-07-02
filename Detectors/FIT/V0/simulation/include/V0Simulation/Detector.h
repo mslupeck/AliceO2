@@ -97,7 +97,8 @@ class Detector : public o2::base::DetImpl<Detector>
   enum EMedia {
     Zero,
     Air,
-    Scintillator
+    Scintillator,
+    Plastic
   }; // media IDs used in createMaterials
 
  private:
