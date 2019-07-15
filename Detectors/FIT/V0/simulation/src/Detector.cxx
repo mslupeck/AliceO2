@@ -167,12 +167,17 @@ void Detector::createMaterials()
   Float_t wScint[nScint] = { 0.016, 0.984 };
   Float_t dScint = 1.023;
 
-  // Plastic mixture; TODO: Verify numbers, these are taken from previous detector
+  // Plastic mixture; TODO: Verify numbers, these are taken from the previous detector
   const Int_t nPlast = 3;
   Float_t aPlast[nPlast] = { 1, 12.01, 15.99 };
   Float_t zPlast[nPlast] = { 1, 6, 8 };
   Float_t wPlast[nPlast] = { 0.08, 0.32, 0.6 } ;
   Float_t dPlast = 1.18;
+
+  // Aluminium; TODO: Verify numbers, these are taken from the previous detector
+  Float_t aAlu = 26.98;
+  Float_t zAlu = 13;
+  Float_t dAlu = 2.7;
 
   Int_t matId = 0;                  // tmp material id number
   const Int_t unsens = 0, sens = 1; // sensitive or unsensitive medium
@@ -202,6 +207,11 @@ void Detector::createMaterials()
 
   o2::base::Detector::Mixture(++matId, "Plastic$", aPlast, zPlast, dPlast, nPlast, wPlast);
   o2::base::Detector::Medium(Plastic, "Plastic$", matId, unsens, fieldType, maxField, tmaxfd, stemax, deemax, epsil,
+                             stmin);
+
+  // TODO: now assigning 0 to radl and absl so that the program calculates them, OK?
+  o2::base::Detector::Material(++matId, "Aluminium$", aAlu, zAlu, dAlu, 0, 0);
+  o2::base::Detector::Medium(Aluminium, "Aluminium$", matId, unsens, fieldType, maxField, tmaxfd, stemax, deemax, epsil,
                              stmin);
 
   LOG(DEBUG) << "FV0 Detector::createMaterials(): matId = " << matId;

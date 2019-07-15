@@ -14,6 +14,7 @@
 #include <TGeoManager.h>
 #include <TGeoBBox.h>
 #include <TGeoTube.h>
+#include <TGeoCone.h>
 #include <TGeoCompositeShape.h>
 #include <TGeoMedium.h>
 #include <TGeoVolume.h>
@@ -33,6 +34,7 @@ Geometry::Geometry(EGeoType initType)
   initializeScintCells();
   if (mGeometryType == eFull) {
     initializePlasticCells();
+    initializeMetalContainer();
   }
   initializeLuts();
   buildGeometry();
@@ -462,9 +464,209 @@ void Geometry::initializeScintCells()
   initializeCells(sScintCellName, sDzScint, kMed);
 }
 
-void Geometry::initializePlasticCells() {
+void Geometry::initializePlasticCells()
+{
   TGeoMedium* kMed = gGeoManager->GetMedium("V0_Plastic$");
   initializeCells(sPlastCellName, sDzPlast, kMed);
+}
+
+void Geometry::initializeMetalContainer()
+{
+  // The metal container is constructed starting from the backplate. The backplate is positioned first, relative to
+  // the scintillator cells. The rest of the container parts are positioned relative to the backplate.
+
+  // TODO: Make position variables consistent, some are now global coordinates, and some are relative to some other part of the container
+
+  // Backplate
+  float zPosBackPlate = sDzScint / 2 + sDzAluBack / 2;                // z-position of the backplate
+
+  std::string backPlateName = "FV0_BackPlate";                        // the full backplate
+  std::string backPlateHoleName = backPlateName + "Hole";             // the hole in the middle of the backplate
+  std::string backPlateHoleCutName = backPlateHoleName + "Cut";       // extension of the hole
+  std::string backPlateHoleTransName = backPlateHoleName + "Trans";   // shift of backplate inner radius
+
+  new TGeoTubeSeg(backPlateName.c_str(), 0, sDrMaxAluBack, sDzAluBack / 2, -90, 90);
+  new TGeoTubeSeg(backPlateHoleName.c_str(), 0, sDrAluHole, sDzAluBack / 2, -90, 90);
+  new TGeoBBox(backPlateHoleCutName.c_str(), -sXAluHole, sDrAluHole, sDzAluBack);
+  
+  TGeoTranslation* backPlateHoleTrans = new TGeoTranslation(backPlateHoleTransName.c_str(), sXAluHole, 0, 0);
+  backPlateHoleTrans->RegisterYourself();
+
+  // Backplate composite shape
+  std::string backPlateBoolFormula;
+  backPlateBoolFormula += backPlateName;
+  backPlateBoolFormula += "-" + backPlateHoleName + ":" + backPlateHoleTransName;
+  backPlateBoolFormula += "-" + backPlateHoleCutName;
+
+  std::string backPlateCSName = backPlateName + "CompositeShape";
+  std::string backPlateCSTransName = backPlateCSName + "Trans";
+
+  new TGeoCompositeShape(backPlateCSName.c_str(), backPlateBoolFormula.c_str());
+  TGeoTranslation* backPlateTrans = new TGeoTranslation(backPlateCSTransName.c_str(), 0, 0, zPosBackPlate);
+  backPlateTrans->RegisterYourself();
+
+  // Frontplate
+  float zPosFrontPlate = zPosBackPlate + sDzAluBack / 2 - sDzAlu + sDzAluFront / 2;   // the z-position o the frontplate
+
+  std::string frontPlateName = "FV0_FrontPlate";
+  std::string frontPlateTransName = frontPlateName + "Trans";
+
+  new TGeoTubeSeg(frontPlateName.c_str(), sDrMinAluFront, sDrMaxAluFront, sDzAluFront / 2 , -90, 90);
+  TGeoTranslation* frontPlateTrans = new TGeoTranslation(frontPlateTransName.c_str(), 0, 0, zPosFrontPlate);
+  frontPlateTrans->RegisterYourself();
+
+  // Frontplate cone
+  // TODO: the cone has a thickness of 0.6, but now 0.6 is used as its thickness in the xy-plane. Calculate the real thickness the in xy-plane.
+  float thicknessFrontPlateCone = sThicknessAluCone;        // thickness of frontplate cone
+  float zPosCone = -sDzAluFront / 2 + sDzAluCone / 2;       // z-position of the frontplate cone relative to the frontplate
+
+  std::string frontPlateConeName = "FV0_FrontPlateCone";                            // no volume with this name
+  std::string frontPlateConeShieldName = frontPlateConeName + "Shield";             // the "sides" of the cone
+  std::string frontPlateConeShieldTransName = frontPlateConeShieldName + "Trans";
+
+  new TGeoConeSeg(frontPlateConeShieldName.c_str(),
+                  sDzAluCone / 2,
+                  sDrMinAluFront - thicknessFrontPlateCone,
+                  sDrMinAluFront,
+                  sDrMinAluCone,
+                  sDrMinAluCone + thicknessFrontPlateCone,
+                  -90,
+                  90);
+  TGeoTranslation* frontPlateConeShieldTrans = new TGeoTranslation(frontPlateConeShieldTransName.c_str(),
+                                                                   0,
+                                                                   0,
+                                                                   zPosCone);
+  frontPlateConeShieldTrans->RegisterYourself();
+
+  // Frontplate cone "bottom"
+  float zPosConePlate = -sDzAluFront / 2 + sDzAluCone - thicknessFrontPlateCone / 2;   // z-position of the cone bottom relative to the frontplate
+  std::string frontPlateConePlateName = frontPlateConeName + "Plate";                  // the bottom of the cone
+
+  new TGeoTubeSeg(frontPlateConePlateName.c_str(), 0, sDrMinAluCone + thicknessFrontPlateCone,
+                  thicknessFrontPlateCone / 2, -90, 90);  
+
+  // Frontplate cone bottom composite shape
+  std::string frontPlateConePlateCSBoolFormula;
+  frontPlateConePlateCSBoolFormula += frontPlateConePlateName;
+  frontPlateConePlateCSBoolFormula += "-" + backPlateHoleName + ":" + backPlateHoleTransName;
+
+  std::string frontPlateConePlateCSName = frontPlateConePlateName + "CompositeShape";
+  std::string frontPlateConePlateCSTransName = frontPlateConePlateCSName + "Trans";
+  new TGeoCompositeShape(frontPlateConePlateCSName.c_str(), frontPlateConePlateCSBoolFormula.c_str());
+  TGeoTranslation* frontPlateConePlateCsTrans = new TGeoTranslation(frontPlateConePlateCSTransName.c_str(),
+                                                                    0,
+                                                                    0,
+                                                                    zPosConePlate);
+  frontPlateConePlateCsTrans->RegisterYourself();
+
+  // Frontplate cone composite shape
+  std::string frontPlateConeCSBoolFormula;
+  frontPlateConeCSBoolFormula += frontPlateConeShieldName + ":" + frontPlateConeShieldTransName;
+  frontPlateConeCSBoolFormula += "+" + frontPlateConePlateCSName + ":" + frontPlateConePlateCSTransName;
+
+  std::string frontPlateConeCSName = frontPlateConeName + "CompositeShape";
+  new TGeoCompositeShape(frontPlateConeCSName.c_str(), frontPlateConeCSBoolFormula.c_str());
+
+  // Shields
+  float dzShieldGap = 0.7;                      // z-distance between the shields and the front- and backplate outer edges (in z-direction)
+  float dzShield = sDzAlu - 2 * dzShieldGap;    // depth of the shields
+  
+  // Outer shield
+  float zPosOuterShield = zPosBackPlate - (zPosBackPlate - zPosFrontPlate) / 2;   // z-position of the outer shield
+  
+  std::string outerShieldName = "FV0_OuterShield";
+  std::string outerShieldTransName = outerShieldName + "Trans";
+  
+  new TGeoTubeSeg(outerShieldName.c_str(), sDrMinAluOuterShield, sDrMaxAluOuterShield, dzShield / 2, -90, 90);
+  TGeoTranslation* shieldTrans = new TGeoTranslation(outerShieldTransName.c_str(), 0, 0, zPosOuterShield);
+  shieldTrans->RegisterYourself();
+
+  // Inner shield
+  float dzInnerShield = sDzAlu - sDzAluCone - dzShieldGap;                                  // depth of the inner shield
+  float zPosInnerShield = zPosBackPlate + sDzAluBack / 2 - dzShieldGap - dzInnerShield / 2; // z-position of the inner shield relative to the backplate
+  
+  std::string innerShieldName = "FV0_InnerShield";
+  std::string innerShieldCutName = innerShieldName + "Cut";
+  
+  new TGeoTubeSeg(innerShieldName.c_str(), sDrMinAluInnerShield, sDrMaxAluInnerShield, dzInnerShield / 2, -90, 90);
+  new TGeoBBox(innerShieldCutName.c_str(), fabs(sXAluHole), sDrMaxAluInnerShield, dzInnerShield / 2);
+
+  // Inner shield composite shape
+  std::string innerShieldCSBoolFormula;
+  innerShieldCSBoolFormula = innerShieldName;
+  innerShieldCSBoolFormula += "-" + innerShieldCutName;
+
+  std::string innerShieldCSName = innerShieldName + "CS";
+  std::string innerShieldCSTransName = innerShieldCSName + "Trans";
+  new TGeoCompositeShape(innerShieldCSName.c_str(), innerShieldCSBoolFormula.c_str());
+  TGeoTranslation* innerShieldCSTrans = new TGeoTranslation(innerShieldCSTransName.c_str(),
+                                                            sXAluHole,
+                                                            0,
+                                                            zPosInnerShield);
+  innerShieldCSTrans->RegisterYourself();
+
+  // Cover
+  float dzCover = sDzAlu;                             // Depth of the covers
+  float zPosCoverConeCut = zPosFrontPlate + zPosCone; // Set the cone cut relative to the frontplate so that the exact position of the aluminium cone part can be used.
+  
+  std::string coverName = "FV0_Cover";
+  std::string coverConeCutName = coverName + "ConeCut";
+  std::string coverHoleCutName = coverName + "HoleCut";
+ 
+  new TGeoBBox(coverName.c_str(), sDxAluCover / 2, sDrMaxAluOuterShield, dzCover / 2);
+  new TGeoConeSeg(coverConeCutName.c_str(),
+                  sDzAluCone / 2,
+                  0,
+                  sDrMinAluFront,
+                  0,
+                  sDrMinAluCone + thicknessFrontPlateCone,
+                  -90,
+                  90);
+  new TGeoTubeSeg(coverHoleCutName.c_str(), 0, sDrMinAluInnerShield, dzCover / 2, 0, 360);  
+
+  std::string coverTransName = coverName + "Trans";
+  std::string coverConeCutTransName = coverConeCutName + "Trans";
+  std::string coverHoleCutTransName = coverHoleCutName + "Trans";
+
+  TGeoTranslation* coverTrans = new TGeoTranslation(coverTransName.c_str(), sDxAluCover / 2, 0, zPosOuterShield);
+  TGeoTranslation* coverConeCutTrans = new TGeoTranslation(coverConeCutTransName.c_str(),
+                                                           0,
+                                                           0,
+                                                           zPosCoverConeCut);
+  TGeoTranslation* coverHoleCutTrans = new TGeoTranslation(coverHoleCutTransName.c_str(),
+                                                           sXAluHole,
+                                                           0,
+                                                           zPosOuterShield);
+
+  coverTrans->RegisterYourself();
+  coverConeCutTrans->RegisterYourself();
+  coverHoleCutTrans->RegisterYourself();
+
+  // Cover composite shape
+  std::string coverCSBoolFormula = "";
+  coverCSBoolFormula += coverName + ":" + coverTransName;
+  coverCSBoolFormula += "-" + coverConeCutName + ":" + coverConeCutTransName;
+  coverCSBoolFormula += "-" + coverHoleCutName + ":" + coverHoleCutTransName;
+
+  std::string coverCSName = coverName + "CS";
+  new TGeoCompositeShape(coverCSName.c_str(), coverCSBoolFormula.c_str());
+
+  // Composite shape
+  std::string boolFormula = "";
+  boolFormula += backPlateCSName + ":" + backPlateCSTransName;
+  boolFormula += "+" + frontPlateName + ":" + frontPlateTransName;
+  boolFormula += "+" + frontPlateConeCSName + ":" + frontPlateTransName;
+  boolFormula += "+" + outerShieldName + ":" + outerShieldTransName;
+  boolFormula += "+" + innerShieldCSName + ":" + innerShieldCSTransName;
+  boolFormula += "+" + coverCSName;
+
+  std::string aluContCSName = "FV0_AluContCS";
+  TGeoCompositeShape* aluContCS = new TGeoCompositeShape(aluContCSName.c_str(), boolFormula.c_str());
+
+  // Volume
+  std::string aluContName = "FV0" + sContainerName;
+  TGeoMedium* kMed = gGeoManager->GetMedium("V0_Aluminium$");
+  new TGeoVolume(aluContName.c_str(), aluContCS, kMed);
 }
 
 void Geometry::initializeLuts()
@@ -486,6 +688,7 @@ void Geometry::buildGeometry()
   assembleScintSectors(volV0);
   if (mGeometryType == eFull) {
     assemblePlasticSectors(volV0);
+    assembleMetalContainer(volV0);
   }
 
   TGeoTranslation* trGlobalZshift = new TGeoTranslation(0, 0, sZposition);
@@ -531,7 +734,21 @@ void Geometry::assemblePlasticSectors(TGeoVolumeAssembly* volV0) {
   
   v0Plast->AddNode(v0PlastLeft, 1);
   v0Plast->AddNode(v0PlastRight, 1);
-  volV0->AddNode(v0Plast, 1, new TGeoTranslation(0, 0, sDzScint / 2));
+  volV0->AddNode(v0Plast, 1, new TGeoTranslation(0, 0, - sDzScint / 2 - sDzPlast / 2));
+}
+
+void Geometry::assembleMetalContainer(TGeoVolumeAssembly* volV0) {
+  std::string containerName = "FV0" + sContainerName;
+  TGeoVolume* container = gGeoManager->GetVolume(containerName.c_str());
+  if (!container) {
+    LOG(WARNING) << "FV0: Couldn't find volume " << containerName;
+  } else {
+    LOG(DEBUG) << "FVO Geometry::assembleMetalContainer(): adding container volume " << containerName;
+    TGeoRotation* reflection = new TGeoRotation();
+    reflection->ReflectX(true);
+    volV0->AddNode(container, 1);
+    volV0->AddNode(container, 2, reflection);
+  }
 }
 
 TGeoVolumeAssembly* Geometry::buildSector(std::string cellType, int iSector)

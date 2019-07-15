@@ -76,21 +76,42 @@ class Geometry
   const std::vector<std::string> getSensitiveVolumeNames() { return mvSensitiveVolumeNames; };
 
  private:
+  // Aluminium container constants
+  static constexpr float sDzAlu = 30;                       // depth of aluminum container
+  static constexpr float sDrAluHole = 4.05;                 // radius of beam hole
+  static constexpr float sXAluHole = -0.15;                 // shift of beam hole
+  static constexpr float sDrMaxAluBack = 83.1;              // outer radius of aluminum backplate
+  static constexpr float sDzAluBack = 1;                    // thickness of aluminum backplate
+  static constexpr float sDrMinAluFront = 45.7;             // inner radius of aluminium frontplate
+  static constexpr float sDrMaxAluFront = 83.1;             // outer radius of aluminum frontplate
+  static constexpr float sDzAluFront = 1;                   // thickness of aluminum frontplate
+  static constexpr float sDrMinAluCone = 24.3;              // inner radius at the bottom of aluminum cone
+  static constexpr float sDzAluCone = 16.2;                 // depth of alminum frontplate cone
+  static constexpr float sThicknessAluCone = 0.6;           // thickness of aluminium frontplate cone
+  static constexpr float sDrMinAluOuterShield = 82.5;       // inner radius of outer aluminum shield
+  static constexpr float sDrMaxAluOuterShield = 82.65;      // outer radius of outer aluminium shield
+  static constexpr float sDrMinAluInnerShield = 4;          // inner radius of inner aluminium shield
+  static constexpr float sDrMaxAluInnerShield = 4.05;       // outer radius of inner aluminium shield
+  static constexpr float sDxAluCover = 0.15;                // thickness of aluminum cover
+
   void initializeVectors();
   void initializeCells(const std::string cellType, const float zThickness, TGeoMedium* medium);
   void initializeScintCells();
   void initializePlasticCells();
+  void initializeMetalContainer();
   void initializeLuts();
 
   void buildGeometry();
   void assembleScintSectors(TGeoVolumeAssembly* volV0);
   void assemblePlasticSectors(TGeoVolumeAssembly* volV0);
+  void assembleMetalContainer(TGeoVolumeAssembly* volV0);
   TGeoVolumeAssembly* buildSector(std::string cellType, int iSector);
 
   inline static const std::string sScintSectorName = "SCINTSECTOR";
   inline static const std::string sScintCellName = "SCINTCELL";
   inline static const std::string sPlastSectorName = "PLASTSECTOR";
   inline static const std::string sPlastCellName = "PLASTSECTOR";
+  inline static const std::string sContainerName = "ALUCONTAINER";
 
   std::vector<std::string> mvSensitiveVolumeNames;
 
