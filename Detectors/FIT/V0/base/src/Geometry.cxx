@@ -30,13 +30,7 @@ using namespace o2::v0;
 Geometry::Geometry(EGeoType initType)
 {
   mGeometryType = initType;
-  initializeVectors();
-  initializeScintCells();
-  if (mGeometryType == eFull) {
-    initializePlasticCells();
-    initializeMetalContainer();
-  }
-  initializeLuts();
+  initializeGeometry();
   buildGeometry();
 }
 
@@ -53,6 +47,16 @@ const int Geometry::getCurrentCellId(TVirtualMC* fMC) {
   fMC->CurrentVolOffID(1, sector);
 
   return sector + 8 * (ring - 1);
+}
+
+void Geometry::initializeGeometry()
+{
+  initializeVectors();
+  initializeSensVols();
+  if (mGeometryType == eFull) {
+    initializeNonSensVols();
+  }
+  initializeLuts();
 }
 
 void Geometry::initializeVectors()
@@ -131,6 +135,18 @@ void Geometry::initializeVectors()
     totTrans->RegisterYourself();
     mvSectorTrans.push_back(totTrans);
   }
+}
+
+void Geometry::initializeSensVols()
+{
+  initializeScintCells();
+}
+
+void Geometry::initializeNonSensVols()
+{
+  initializePlasticCells();
+  initializeFibers();
+  initializeMetalContainer();
 }
 
 void Geometry::initializeCells(std::string cellType, float zThickness, TGeoMedium* medium) {
@@ -470,6 +486,11 @@ void Geometry::initializePlasticCells()
   initializeCells(sPlastCellName, sDzPlast, kMed);
 }
 
+void Geometry::initializeFibers()
+{
+  // TBD
+}
+
 void Geometry::initializeMetalContainer()
 {
   // The metal container is constructed starting from the backplate. The backplate is positioned first, relative to
@@ -682,18 +703,29 @@ void Geometry::buildGeometry()
   }
 
   // Top volume of FIT V0 detector
-  TGeoVolumeAssembly* volV0 = new TGeoVolumeAssembly("FITV0");
-  LOG(INFO) << "FV0 Geometry::buildGeometry()::Volume name = " << volV0->GetName();
+  TGeoVolumeAssembly* vFV0 = new TGeoVolumeAssembly("FITV0");
+  LOG(INFO) << "FV0 Geometry::buildGeometry()::Volume name = " << vFV0->GetName();
 
-  assembleScintSectors(volV0);
+  assembleSensVols(vFV0);
   if (mGeometryType == eFull) {
-    assemblePlasticSectors(volV0);
-    assembleMetalContainer(volV0);
+    assembleNonSensVols(vFV0);
   }
 
   TGeoTranslation* trGlobalZshift = new TGeoTranslation(0, 0, sZposition);
 
-  vALIC->AddNode(volV0, 0, trGlobalZshift);
+  vALIC->AddNode(vFV0, 0, trGlobalZshift);
+}
+
+void Geometry::assembleSensVols(TGeoVolumeAssembly* vFV0)
+{
+  assembleScintSectors(vFV0);
+}
+
+void Geometry::assembleNonSensVols(TGeoVolumeAssembly* vFV0)
+{
+  assemblePlasticSectors(vFV0);
+  assembleFibers(vFV0);
+  assembleMetalContainer(vFV0);
 }
 
 void Geometry::assembleScintSectors(TGeoVolumeAssembly* volV0)
@@ -735,6 +767,11 @@ void Geometry::assemblePlasticSectors(TGeoVolumeAssembly* volV0) {
   v0Plast->AddNode(v0PlastLeft, 1);
   v0Plast->AddNode(v0PlastRight, 1);
   volV0->AddNode(v0Plast, 1, new TGeoTranslation(0, 0, - sDzScint / 2 - sDzPlast / 2));
+}
+
+void Geometry::assembleFibers(TGeoVolumeAssembly* vFV0)
+{
+  /// TBD
 }
 
 void Geometry::assembleMetalContainer(TGeoVolumeAssembly* volV0) {
