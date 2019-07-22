@@ -88,8 +88,7 @@ class Geometry
   static constexpr float sDrMinAluCone = 24.3;              // inner radius at the bottom of aluminum cone
   static constexpr float sDzAluCone = 16.2;                 // depth of alminum frontplate cone
   static constexpr float sThicknessAluCone = 0.6;           // thickness of aluminium frontplate cone
-  // TODO: the cone has a thickness of 0.6, but now 0.6 is used as its thickness in the xy-plane. Calculate the real thickness the in xy-plane.
-  static constexpr float sXYThicknessAluCone = 0.6;         
+  static constexpr float sXYThicknessAluCone = 0.975;       // radial thickness in the xy-plane of the aluminium cone.
   static constexpr float sDrMinAluOuterShield = 82.5;       // inner radius of outer aluminum shield
   static constexpr float sDrMaxAluOuterShield = 82.65;      // outer radius of outer aluminium shield
   static constexpr float sDrMinAluInnerShield = 4;          // inner radius of inner aluminium shield

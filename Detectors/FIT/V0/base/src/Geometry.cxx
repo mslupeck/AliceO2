@@ -781,7 +781,11 @@ void Geometry::buildGeometry()
 
   TGeoTranslation* trGlobalZshift = new TGeoTranslation(0, 0, sZposition);
 
-  vALIC->AddNode(vFV0, 0, trGlobalZshift);
+  // The geometry was built in the wrong z-direction by mistake, so untill that is fixed, reflect it.
+  TGeoRotation* rotZReflect = new TGeoRotation();
+  rotZReflect->ReflectZ(kTRUE);
+
+  vALIC->AddNode(vFV0, 0, new TGeoCombiTrans(*trGlobalZshift, *rotZReflect));
 }
 
 void Geometry::assembleSensVols(TGeoVolumeAssembly* vFV0)
