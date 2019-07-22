@@ -99,6 +99,9 @@ class Detector : public o2::base::DetImpl<Detector>
     Air,
     Scintillator,
     Plastic,
+    FiberInner,
+    FiberMiddle,
+    FiberOuter,
     Aluminium
   }; // media IDs used in createMaterials
 

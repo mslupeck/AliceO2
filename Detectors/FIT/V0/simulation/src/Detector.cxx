@@ -209,8 +209,20 @@ void Detector::createMaterials()
   o2::base::Detector::Medium(Plastic, "Plastic$", matId, unsens, fieldType, maxField, tmaxfd, stemax, deemax, epsil,
                              stmin);
 
-  // TODO: now assigning 0 to radl and absl so that the program calculates them, OK?
-  o2::base::Detector::Material(++matId, "Aluminium$", aAlu, zAlu, dAlu, 0, 0);
+  o2::base::Detector::Mixture(++matId, "FiberInner$", aPlast, zPlast, dPlast, nPlast, wPlast);
+  o2::base::Detector::Medium(FiberInner, "FiberInner$", matId, unsens, fieldType, maxField, tmaxfd, stemax, deemax,
+                             epsil, stmin);
+
+  o2::base::Detector::Mixture(++matId, "FiberMiddle$", aPlast, zPlast, dPlast * 2/3, nPlast, wPlast);
+  o2::base::Detector::Medium(FiberMiddle, "FiberMiddle$", matId, unsens, fieldType, maxField, tmaxfd, stemax, deemax,
+                             epsil, stmin);
+
+  o2::base::Detector::Mixture(++matId, "FiberOuter$", aPlast, zPlast, dPlast * 1/3, nPlast, wPlast);
+  o2::base::Detector::Medium(FiberOuter, "FiberOuter$", matId, unsens, fieldType, maxField, tmaxfd, stemax, deemax,
+                             epsil, stmin);
+
+  // TODO: verify radl and absl
+  o2::base::Detector::Material(++matId, "Aluminium$", aAlu, zAlu, dAlu, 8.9, 999);
   o2::base::Detector::Medium(Aluminium, "Aluminium$", matId, unsens, fieldType, maxField, tmaxfd, stemax, deemax, epsil,
                              stmin);
 

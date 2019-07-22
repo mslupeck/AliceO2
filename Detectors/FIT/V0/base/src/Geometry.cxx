@@ -135,6 +135,15 @@ void Geometry::initializeVectors()
     totTrans->RegisterYourself();
     mvSectorTrans.push_back(totTrans);
   }
+
+  // Fiber volume radii
+  mvrMinFiber.push_back(0);
+  mvrMinFiber.push_back(sDrMinAluCone + sEpsilon);
+  mvrMinFiber.push_back(sDrMinAluFront + sEpsilon);
+
+  mvrMaxFiber.push_back(sDrMinAluCone);
+  mvrMaxFiber.push_back(sDrMinAluFront);
+  mvrMaxFiber.push_back(mvrMaxScint.back());
 }
 
 void Geometry::initializeSensVols()
@@ -488,7 +497,66 @@ void Geometry::initializePlasticCells()
 
 void Geometry::initializeFibers()
 {
-  // TBD
+  LOG(INFO) << "FVO Geometry::initializeFibers(): Initializing fibers";
+
+  float dzFibers = sDzAlu - sDzAluBack - sDzAluFront - sDzScint - sDzPlast - 2 * sEpsilon;  // depth of the fiber volumes
+  float zFibers = (sZPlast + sZAluFront) / 2;                                               // z-position of the fiber volumes
+  int numberOfFiberVols = mvrMinFiber.size();
+
+  TGeoMedium* medFiberInner = gGeoManager->GetMedium("FiberInner$");
+  TGeoMedium* medFiberMiddle = gGeoManager->GetMedium("FiberMiddle$");
+  TGeoMedium* medFiberOuter = gGeoManager->GetMedium("FiberOuter$");
+  TGeoMedium* medFiber[numberOfFiberVols] = { medFiberInner, medFiberMiddle, medFiberOuter };
+
+  std::string fiberName = "FV0_Fibers";                               // No volume with this name
+
+  std::string fiberSepCutName = fiberName + "SepCut";
+  std::string fiberConeCutName = fiberName + "ConeCut";
+  std::string fiberHoleCutName = fiberName + "HoleCut";
+
+  std::string fiberTransName = fiberName + "Trans";
+  std::string fiberConeCutTransName = fiberConeCutName + "Trans";
+  std::string fiberHoleCutTransName = fiberHoleCutName + "Trans";
+
+  new TGeoBBox(fiberSepCutName.c_str(), sDrSeparationScint, mvrMaxFiber.back(), dzFibers / 2);
+  new TGeoConeSeg(fiberConeCutName.c_str(), sDzAluCone / 2, 0, sDrMinAluFront, 0, sDrMinAluCone + sXYThicknessAluCone, -90, 90);
+  new TGeoTube(fiberHoleCutName.c_str(), 0, mvrMinScint.front(), dzFibers / 2);
+  
+  TGeoTranslation* fiberTrans = new TGeoTranslation(fiberTransName.c_str(), 0 , 0, zFibers);
+  TGeoTranslation* fiberConeCutTrans = new TGeoTranslation(fiberConeCutTransName.c_str(), 0, 0, sZCone);
+  TGeoTranslation* fibersHoleCutTrans = new TGeoTranslation(fiberHoleCutTransName.c_str(), sRingInnerRadiusDx, 0, zFibers);
+  
+  fiberTrans->RegisterYourself();
+  fiberConeCutTrans->RegisterYourself();
+  fibersHoleCutTrans->RegisterYourself();
+
+  for (int i = 0; i < numberOfFiberVols; i++) {
+    std::stringstream fiberShapeName;
+    fiberShapeName << fiberName << i + 1;
+
+    new TGeoTubeSeg(fiberShapeName.str().c_str(), mvrMinFiber.at(i), mvrMaxFiber.at(i), dzFibers / 2, -90, 90);
+
+    // Composite shape
+    std::string boolFormula = "";
+    boolFormula += fiberShapeName.str() + ":" + fiberTransName;
+    boolFormula += "-" + fiberSepCutName + ":" + fiberTransName;
+    boolFormula += "-" + fiberConeCutName + ":" + fiberConeCutTransName;
+
+    if (i == 0) {
+      boolFormula += "-" + fiberHoleCutName + ":" + fiberHoleCutTransName;
+    }
+
+    std::string fiberCSName = fiberShapeName.str() + "CS";
+    TGeoCompositeShape* fiberCS = new TGeoCompositeShape(fiberCSName.c_str(), boolFormula.c_str());
+
+    // Volume
+    std::stringstream fiberName;
+    fiberName << "FV0" << sFiberName << i + 1;
+    if (!medFiber[i]) {
+      LOG(WARN) << "FV0 Geometry::initializeFibers(): Medium for fiber volume no. " << i << " not found!";
+    }
+    new TGeoVolume(fiberName.str().c_str(), fiberCS, medFiber[i]);
+  }
 }
 
 void Geometry::initializeMetalContainer()
@@ -499,7 +567,7 @@ void Geometry::initializeMetalContainer()
   // TODO: Make position variables consistent, some are now global coordinates, and some are relative to some other part of the container
 
   // Backplate
-  float zPosBackPlate = sDzScint / 2 + sDzAluBack / 2;                // z-position of the backplate
+  float zPosBackPlate = sZAluBack;                                    // z-position of the backplate
 
   std::string backPlateName = "FV0_BackPlate";                        // the full backplate
   std::string backPlateHoleName = backPlateName + "Hole";             // the hole in the middle of the backplate
@@ -514,7 +582,7 @@ void Geometry::initializeMetalContainer()
   backPlateHoleTrans->RegisterYourself();
 
   // Backplate composite shape
-  std::string backPlateBoolFormula;
+  std::string backPlateBoolFormula = "";
   backPlateBoolFormula += backPlateName;
   backPlateBoolFormula += "-" + backPlateHoleName + ":" + backPlateHoleTransName;
   backPlateBoolFormula += "-" + backPlateHoleCutName;
@@ -527,7 +595,7 @@ void Geometry::initializeMetalContainer()
   backPlateTrans->RegisterYourself();
 
   // Frontplate
-  float zPosFrontPlate = zPosBackPlate + sDzAluBack / 2 - sDzAlu + sDzAluFront / 2;   // the z-position o the frontplate
+  float zPosFrontPlate = sZAluFront;   // the z-position o the frontplate
 
   std::string frontPlateName = "FV0_FrontPlate";
   std::string frontPlateTransName = frontPlateName + "Trans";
@@ -766,12 +834,25 @@ void Geometry::assemblePlasticSectors(TGeoVolumeAssembly* volV0) {
   
   v0Plast->AddNode(v0PlastLeft, 1);
   v0Plast->AddNode(v0PlastRight, 1);
-  volV0->AddNode(v0Plast, 1, new TGeoTranslation(0, 0, - sDzScint / 2 - sDzPlast / 2));
+  volV0->AddNode(v0Plast, 1, new TGeoTranslation(0, 0, sZPlast));
 }
 
 void Geometry::assembleFibers(TGeoVolumeAssembly* vFV0)
 {
-  /// TBD
+  TGeoVolumeAssembly* fibers = new TGeoVolumeAssembly("FV0FIBERS");
+
+  for (int i = 0; i < mvrMinFiber.size(); i++) {
+    std::stringstream ssFiberName;
+    ssFiberName << "FV0" << sFiberName << i + 1;
+    TGeoVolume* fiber = gGeoManager->GetVolume(ssFiberName.str().c_str());
+    fibers->AddNode(fiber, 1);
+  }
+
+  TGeoRotation* reflection = new TGeoRotation();
+  reflection->ReflectX(true);
+
+  vFV0->AddNode(fibers, 1);
+  vFV0->AddNode(fibers, 2, reflection);
 }
 
 void Geometry::assembleMetalContainer(TGeoVolumeAssembly* volV0) {

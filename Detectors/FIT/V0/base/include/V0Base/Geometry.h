@@ -88,11 +88,20 @@ class Geometry
   static constexpr float sDrMinAluCone = 24.3;              // inner radius at the bottom of aluminum cone
   static constexpr float sDzAluCone = 16.2;                 // depth of alminum frontplate cone
   static constexpr float sThicknessAluCone = 0.6;           // thickness of aluminium frontplate cone
+  // TODO: the cone has a thickness of 0.6, but now 0.6 is used as its thickness in the xy-plane. Calculate the real thickness the in xy-plane.
+  static constexpr float sXYThicknessAluCone = 0.6;         
   static constexpr float sDrMinAluOuterShield = 82.5;       // inner radius of outer aluminum shield
   static constexpr float sDrMaxAluOuterShield = 82.65;      // outer radius of outer aluminium shield
   static constexpr float sDrMinAluInnerShield = 4;          // inner radius of inner aluminium shield
   static constexpr float sDrMaxAluInnerShield = 4.05;       // outer radius of inner aluminium shield
   static constexpr float sDxAluCover = 0.15;                // thickness of aluminum cover
+
+  // Local position constants
+  static constexpr float sZScint = 0;                                                         // scintillator z-position
+  static constexpr float sZPlast = sZScint - sDzScint / 2 - sDzPlast / 2;                     // plastic z-position
+  static constexpr float sZAluBack = sZScint + sDzScint / 2 + sDzAluBack / 2;                 // aluminium backplate z-position
+  static constexpr float sZAluFront = sZAluBack + sDzAluBack / 2 - sDzAlu + sDzAluFront / 2;  // aluminium frontplate z-position
+  static constexpr float sZCone = sZAluFront - sDzAluFront / 2 + sDzAluCone / 2;              // aluminium frontplate cone z-position
 
   /// Initialize the geometry.
   void initializeGeometry();
@@ -162,6 +171,7 @@ class Geometry
   inline static const std::string sScintCellName = "SCINTCELL";
   inline static const std::string sPlastSectorName = "PLASTSECTOR";
   inline static const std::string sPlastCellName = "PLASTSECTOR";
+  inline static const std::string sFiberName = "FIBER";
   inline static const std::string sContainerName = "ALUCONTAINER";
 
   std::vector<std::string> mvSensitiveVolumeNames;
@@ -171,6 +181,8 @@ class Geometry
   std::vector<float> mvrMinScint;         // inner radii of a ring (.at(0) -> ring 1, .at(4) -> ring 5)
   std::vector<float> mvrMaxScint;         // outer radii of a ring (.at(0) -> ring 1, .at(4) -> ring 5)
   std::vector<TGeoMatrix*> mvSectorTrans; // transformations of sectors (.at(0) -> sector 1)
+  std::vector<float> mvrMinFiber;         // inner radii of fiber volumes (.at(0) -> fiber 1)
+  std::vector<float> mvrMaxFiber;         // outer radii of fiber volumes (.at(0) -> fiber 1)
 
   int mGeometryType; // same meaning as initType in constructor
 
