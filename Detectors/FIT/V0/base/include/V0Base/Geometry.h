@@ -77,23 +77,25 @@ class Geometry
 
  private:
   // Aluminium container constants
-  static constexpr float sDzAlu = 30;                       // depth of aluminum container
+  static constexpr float sDzAlu = 30;                       // depth of aluminium container
   static constexpr float sDrAluHole = 4.05;                 // radius of beam hole
   static constexpr float sXAluHole = -0.15;                 // shift of beam hole
-  static constexpr float sDrMaxAluBack = 83.1;              // outer radius of aluminum backplate
-  static constexpr float sDzAluBack = 1;                    // thickness of aluminum backplate
+  static constexpr float sDrMaxAluBack = 83.1;              // outer radius of aluminium backplate
+  static constexpr float sDzAluBack = 1;                    // thickness of aluminium backplate
   static constexpr float sDrMinAluFront = 45.7;             // inner radius of aluminium frontplate
-  static constexpr float sDrMaxAluFront = 83.1;             // outer radius of aluminum frontplate
-  static constexpr float sDzAluFront = 1;                   // thickness of aluminum frontplate
-  static constexpr float sDrMinAluCone = 24.3;              // inner radius at the bottom of aluminum cone
-  static constexpr float sDzAluCone = 16.2;                 // depth of alminum frontplate cone
+  static constexpr float sDrMaxAluFront = 83.1;             // outer radius of aluminium frontplate
+  static constexpr float sDzAluFront = 1;                   // thickness of aluminium frontplate
+  static constexpr float sDxAluStand = 40;                  // the width of the aluminium stand
+  static constexpr float sDyAluStand = 3;                   // the height of the aluminium stand at x = 0
+  static constexpr float sDrMinAluCone = 24.3;              // inner radius at the bottom of aluminium cone
+  static constexpr float sDzAluCone = 16.2;                 // depth of alminium frontplate cone
   static constexpr float sThicknessAluCone = 0.6;           // thickness of aluminium frontplate cone
   static constexpr float sXYThicknessAluCone = 0.975;       // radial thickness in the xy-plane of the aluminium cone.
-  static constexpr float sDrMinAluOuterShield = 82.5;       // inner radius of outer aluminum shield
+  static constexpr float sDrMinAluOuterShield = 82.5;       // inner radius of outer aluminium shield
   static constexpr float sDrMaxAluOuterShield = 82.65;      // outer radius of outer aluminium shield
   static constexpr float sDrMinAluInnerShield = 4;          // inner radius of inner aluminium shield
   static constexpr float sDrMaxAluInnerShield = 4.05;       // outer radius of inner aluminium shield
-  static constexpr float sDxAluCover = 0.15;                // thickness of aluminum cover
+  static constexpr float sDxAluCover = 0.15;                // thickness of aluminium cover
 
   // Local position constants
   static constexpr float sZScint = 0;                                                         // scintillator z-position
@@ -165,6 +167,9 @@ class Geometry
   /// \param  iSector   The numbering of the sector.
   /// \return The sector.
   TGeoVolumeAssembly* buildSector(std::string cellType, int iSector);
+
+  /// Helper function for creating and registering a TGeoTranslation.
+  TGeoTranslation* createAndRegisterTrans(std::string name, double dx, double dy, double dz);
 
   inline static const std::string sScintSectorName = "SCINTSECTOR";
   inline static const std::string sScintCellName = "SCINTCELL";

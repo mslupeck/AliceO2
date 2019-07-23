@@ -570,20 +570,24 @@ void Geometry::initializeMetalContainer()
   float zPosBackPlate = sZAluBack;                                    // z-position of the backplate
 
   std::string backPlateName = "FV0_BackPlate";                        // the full backplate
+  std::string backPlateStandName = backPlateName + "Stand";           // the stand part of the backplate
   std::string backPlateHoleName = backPlateName + "Hole";             // the hole in the middle of the backplate
   std::string backPlateHoleCutName = backPlateHoleName + "Cut";       // extension of the hole
-  std::string backPlateHoleTransName = backPlateHoleName + "Trans";   // shift of backplate inner radius
+  std::string backPlateStandTransName = backPlateStandName + "Trans"; // shift of the backplate stand
+  std::string backPlateHoleTransName = backPlateHoleName + "Trans";   // shift of the backplate inner radius
 
   new TGeoTubeSeg(backPlateName.c_str(), 0, sDrMaxAluBack, sDzAluBack / 2, -90, 90);
+  new TGeoBBox(backPlateStandName.c_str(), sDxAluStand / 2, (sDrMaxAluBack + sDyAluStand) / 2, sDzAluBack / 2);
   new TGeoTubeSeg(backPlateHoleName.c_str(), 0, sDrAluHole, sDzAluBack / 2, -90, 90);
   new TGeoBBox(backPlateHoleCutName.c_str(), -sXAluHole, sDrAluHole, sDzAluBack);
   
-  TGeoTranslation* backPlateHoleTrans = new TGeoTranslation(backPlateHoleTransName.c_str(), sXAluHole, 0, 0);
-  backPlateHoleTrans->RegisterYourself();
+  createAndRegisterTrans(backPlateStandTransName, sDxAluStand / 2, - (sDrMaxAluBack + sDyAluStand) / 2, 0);
+  createAndRegisterTrans(backPlateHoleTransName, sXAluHole, 0, 0);
 
   // Backplate composite shape
   std::string backPlateBoolFormula = "";
   backPlateBoolFormula += backPlateName;
+  backPlateBoolFormula += "+" + backPlateStandName + ":" + backPlateStandTransName;
   backPlateBoolFormula += "-" + backPlateHoleName + ":" + backPlateHoleTransName;
   backPlateBoolFormula += "-" + backPlateHoleCutName;
 
@@ -591,22 +595,35 @@ void Geometry::initializeMetalContainer()
   std::string backPlateCSTransName = backPlateCSName + "Trans";
 
   new TGeoCompositeShape(backPlateCSName.c_str(), backPlateBoolFormula.c_str());
-  TGeoTranslation* backPlateTrans = new TGeoTranslation(backPlateCSTransName.c_str(), 0, 0, zPosBackPlate);
-  backPlateTrans->RegisterYourself();
+  createAndRegisterTrans(backPlateCSTransName, 0, 0, zPosBackPlate);
 
   // Frontplate
-  float zPosFrontPlate = sZAluFront;   // the z-position o the frontplate
+  float zPosFrontPlate = sZAluFront;                                                    // the z-position o the frontplate
+  float dyFrontPlateStand = sDyAluStand + (sDrMaxAluFront - sDrMinAluFront) / 2;        // the height of the total stand overlapping with the rest of the plate
+  float yPosFrontPlateStand = -sDrMaxAluFront - sDyAluStand + dyFrontPlateStand / 2;    // the y-position of the total stand
 
   std::string frontPlateName = "FV0_FrontPlate";
+  std::string frontPlateStandName = frontPlateName + "Stand";
   std::string frontPlateTransName = frontPlateName + "Trans";
+  std::string frontPlateStandTransName = frontPlateStandName + "Trans";
 
   new TGeoTubeSeg(frontPlateName.c_str(), sDrMinAluFront, sDrMaxAluFront, sDzAluFront / 2 , -90, 90);
-  TGeoTranslation* frontPlateTrans = new TGeoTranslation(frontPlateTransName.c_str(), 0, 0, zPosFrontPlate);
-  frontPlateTrans->RegisterYourself();
+  new TGeoBBox(frontPlateStandName.c_str(), sDxAluStand / 2, dyFrontPlateStand / 2, sDzAluBack / 2);
+
+  createAndRegisterTrans(frontPlateTransName, 0, 0, zPosFrontPlate);
+  createAndRegisterTrans(frontPlateStandTransName, sDxAluStand / 2, yPosFrontPlateStand, 0);
+
+  // Frontplate cone composite shape
+  std::string frontPlateBoolFormula = "";
+  frontPlateBoolFormula += frontPlateName;
+  frontPlateBoolFormula += "+" + frontPlateStandName + ":" + frontPlateStandTransName;
+
+  std::string frontPlateCSName = frontPlateName + "CompositeName";
+
+  new TGeoCompositeShape(frontPlateCSName.c_str(), frontPlateBoolFormula.c_str());
 
   // Frontplate cone
-  // TODO: the cone has a thickness of 0.6, but now 0.6 is used as its thickness in the xy-plane. Calculate the real thickness the in xy-plane.
-  float thicknessFrontPlateCone = sThicknessAluCone;        // thickness of frontplate cone
+  float thicknessFrontPlateCone = sXYThicknessAluCone;      // radial thickness of frontplate cone in the xy-plane
   float zPosCone = -sDzAluFront / 2 + sDzAluCone / 2;       // z-position of the frontplate cone relative to the frontplate
 
   std::string frontPlateConeName = "FV0_FrontPlateCone";                            // no volume with this name
@@ -621,11 +638,7 @@ void Geometry::initializeMetalContainer()
                   sDrMinAluCone + thicknessFrontPlateCone,
                   -90,
                   90);
-  TGeoTranslation* frontPlateConeShieldTrans = new TGeoTranslation(frontPlateConeShieldTransName.c_str(),
-                                                                   0,
-                                                                   0,
-                                                                   zPosCone);
-  frontPlateConeShieldTrans->RegisterYourself();
+  createAndRegisterTrans(frontPlateConeShieldTransName, 0, 0, zPosCone);
 
   // Frontplate cone "bottom"
   float zPosConePlate = -sDzAluFront / 2 + sDzAluCone - thicknessFrontPlateCone / 2;   // z-position of the cone bottom relative to the frontplate
@@ -649,7 +662,7 @@ void Geometry::initializeMetalContainer()
   frontPlateConePlateCsTrans->RegisterYourself();
 
   // Frontplate cone composite shape
-  std::string frontPlateConeCSBoolFormula;
+  std::string frontPlateConeCSBoolFormula = "";
   frontPlateConeCSBoolFormula += frontPlateConeShieldName + ":" + frontPlateConeShieldTransName;
   frontPlateConeCSBoolFormula += "+" + frontPlateConePlateCSName + ":" + frontPlateConePlateCSTransName;
 
@@ -743,7 +756,7 @@ void Geometry::initializeMetalContainer()
   // Composite shape
   std::string boolFormula = "";
   boolFormula += backPlateCSName + ":" + backPlateCSTransName;
-  boolFormula += "+" + frontPlateName + ":" + frontPlateTransName;
+  boolFormula += "+" + frontPlateCSName + ":" + frontPlateTransName;
   boolFormula += "+" + frontPlateConeCSName + ":" + frontPlateTransName;
   boolFormula += "+" + outerShieldName + ":" + outerShieldTransName;
   boolFormula += "+" + innerShieldCSName + ":" + innerShieldCSTransName;
@@ -897,4 +910,10 @@ TGeoVolumeAssembly* Geometry::buildSector(std::string cellType, int iSector)
   }
 
   return sector;
+}
+
+TGeoTranslation* Geometry::createAndRegisterTrans(std::string name, double dx, double dy, double dz) {
+  TGeoTranslation* trans = new TGeoTranslation(name.c_str(), dx, dy, dz);
+  trans->RegisterYourself();
+  return trans;
 }
