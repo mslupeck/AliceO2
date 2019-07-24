@@ -99,10 +99,11 @@ class Geometry
 
   // Local position constants
   static constexpr float sZScint = 0;                                                         // scintillator z-position
-  static constexpr float sZPlast = sZScint - sDzScint / 2 - sDzPlast / 2;                     // plastic z-position
-  static constexpr float sZAluBack = sZScint + sDzScint / 2 + sDzAluBack / 2;                 // aluminium backplate z-position
-  static constexpr float sZAluFront = sZAluBack + sDzAluBack / 2 - sDzAlu + sDzAluFront / 2;  // aluminium frontplate z-position
-  static constexpr float sZCone = sZAluFront - sDzAluFront / 2 + sDzAluCone / 2;              // aluminium frontplate cone z-position
+  static constexpr float sZPlast = sZScint + sDzScint / 2 + sDzPlast / 2;                     // plastic z-position
+  static constexpr float sZAluBack = sZScint - sDzScint / 2 - sDzAluBack / 2;                 // aluminium backplate z-position
+  static constexpr float sZAluFront = sZAluBack - sDzAluBack / 2 + sDzAlu - sDzAluFront / 2;  // aluminium frontplate z-position
+  static constexpr float sZFiber = (sZPlast + sZAluFront) / 2;                                // fiber z-position (plastic and frontplate midpoint)
+  static constexpr float sZCone = sZAluFront + sDzAluFront / 2 - sDzAluCone / 2;              // aluminium frontplate cone z-position
 
   /// Initialize the geometry.
   void initializeGeometry();
