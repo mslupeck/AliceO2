@@ -61,24 +61,30 @@ void Geometry::initializeGeometry()
 
 void Geometry::initializeVectors()
 {
-  // RADII
+  initializeCellRadii();
+  initializeSectorTransformations();
+  initializeFiberRadii();
+}
 
-  // Scintillator radii
-  LOG(INFO) << "FV0 Geometry::initializeVectors(): Initializing V0 scintillator ring radii.";
+void Geometry::initializeCellRadii()
+{
+  LOG(INFO) << "FV0 Geometry::initializeCellRadii(): Initializing FV0 cell ring radii.";
 
-  // Index of mvrAvgScint is NOT linked directly to any ring number
-  mvrAvgScint.assign(sRingRadiiScint, sRingRadiiScint + sNumberOfRings + 1);
+  // Index of mRAvgRing is NOT linked directly to any ring number
+  mRAvgRing.assign(sRingRadiiScint, sRingRadiiScint + sNumberOfRings + 1);
 
   // Set real scintillator radii (reduced by paint thickness and separation gap)
-  for (uint16_t ir = 0; ir < mvrAvgScint.size() - 1; ir++) {
-    mvrMinScint.push_back(mvrAvgScint.at(ir) + sDrSeparationScint);
-    mvrMaxScint.push_back(mvrAvgScint.at(ir + 1) - sDrSeparationScint);
-    LOG(INFO) << "FV0 Geometry::initializeVectors(): Scintillator ring " << ir << " min: " << mvrMinScint.at(ir) << ", max: " << mvrMaxScint.at(ir);
+  for (uint16_t ir = 0; ir < mRAvgRing.size() - 1; ir++) {
+    mRMinScint.push_back(mRAvgRing.at(ir) + sDrSeparationScint);
+    mRMaxScint.push_back(mRAvgRing.at(ir + 1) - sDrSeparationScint);
+    LOG(INFO) << "FV0 Geometry::initializeCellRadii(): Ring " << ir << " min: " << mRMinScint.at(ir) << ", max: " << mRMaxScint.at(ir);
   }
-  // Now indices of mvrMinScint and mvrMaxScint correspond to the same ring
+  // Now indices of mRMinScint and mRMaxScint correspond to the same ring
+}
 
-  // SECTOR TRANSFORMATIONS
-  LOG(INFO) << "FV0 Geometry::initializeVectors(): Initializing V0 sector transformations.";
+void Geometry::initializeSectorTransformations()
+{
+  LOG(INFO) << "FV0 Geometry::initializeSectorTransformations(): Initializing FV0 sector transformations.";
 
   for (uint16_t isector = 1; isector <= sBaseNumberOfSectors; isector++) {
     // isector = 1 corresponds to the first sector counter-clockwise from the y-axis + global azimuthal rotation
@@ -133,17 +139,19 @@ void Geometry::initializeVectors()
     // Combine the rotation and reflection
     *totTrans = *rot * *refl;
     totTrans->RegisterYourself();
-    mvSectorTrans.push_back(totTrans);
+    mSectorTrans.push_back(totTrans);
   }
+}
 
-  // Fiber volume radii
-  mvrMinFiber.push_back(0);
-  mvrMinFiber.push_back(sDrMinAluCone + sEpsilon);
-  mvrMinFiber.push_back(sDrMinAluFront + sEpsilon);
+void Geometry::initializeFiberRadii()
+{
+  mRMinFiber.push_back(0);
+  mRMinFiber.push_back(sDrMinAluCone + sEpsilon);
+  mRMinFiber.push_back(sDrMinAluFront + sEpsilon);
 
-  mvrMaxFiber.push_back(sDrMinAluCone);
-  mvrMaxFiber.push_back(sDrMinAluFront);
-  mvrMaxFiber.push_back(mvrMaxScint.back());
+  mRMaxFiber.push_back(sDrMinAluCone);
+  mRMaxFiber.push_back(sDrMinAluFront);
+  mRMaxFiber.push_back(mRMaxScint.back());
 }
 
 void Geometry::initializeSensVols()
@@ -166,25 +174,19 @@ void Geometry::initializeCells(std::string cellType, float zThickness, TGeoMediu
 
   LOG(INFO) << "FV0 Geometry::initializeCells(): Initializing " << cellType << " cells.";
   
-  float dz = zThickness / 2;                          // half depth of the cells
-  float rHoleSmall = 0.265;                           // radius of the small holes
-  float rHoleLarge = 0.415;                           // radius of the large holes
   float xHoleCut = 0.2;                               // width of extension of hole 1, 2 and 7 in the "a" cell
   float dxHole = sDrSeparationScint + xHoleCut;       // x-placement of holes 1, 2 and 7 in the "a" cell
 
   // Sector separation gap shape
   std::string secSepShapeName = "FV0_" + cellType + "SectorSeparation";
-  new TGeoBBox(secSepShapeName.c_str(), mvrMaxScint.back(), sDrSeparationScint, dz);
+  new TGeoBBox(secSepShapeName.c_str(), mRMaxScint.back() + sEpsilon, sDxAluCover + sDrSeparationScint, zThickness / 2);
 
   // Sector separation gap rotations
   std::string secSepRot45Name = "FV0_" + cellType + "SecSepRot45";
   std::string secSepRot90Name = "FV0_" + cellType + "SecSepRot90";
 
-  TGeoRotation* secSepRot45 = new TGeoRotation(secSepRot45Name.c_str(), 45, 0, 0);  
-  TGeoRotation* secSepRot90 = new TGeoRotation(secSepRot90Name.c_str(), 90, 0, 0);
-
-  secSepRot45->RegisterYourself();
-  secSepRot90->RegisterYourself();
+  createAndRegisterRot(secSepRot45Name, 45, 0, 0);  
+  createAndRegisterRot(secSepRot90Name, 90, 0, 0);
 
   // Hole shapes
   std::string holeSmallName = "FV0_" + cellType + "HoleSmall";
@@ -192,16 +194,16 @@ void Geometry::initializeCells(std::string cellType, float zThickness, TGeoMediu
   std::string holeSmallCutName = "FV0_" + cellType + "HoleSmallCut";
   std::string holeLargeCutName = "FV0_" + cellType + "HoleLargeCut";
 
-  new TGeoTube(holeSmallName.c_str(), 0, rHoleSmall, dz);  
-  new TGeoTube(holeLargeName.c_str(), 0, rHoleLarge, dz);
-  new TGeoBBox(holeSmallCutName.c_str(), xHoleCut, rHoleSmall, dz);
-  new TGeoBBox(holeLargeCutName.c_str(), xHoleCut, rHoleLarge, dz);
+  new TGeoTube(holeSmallName.c_str(), 0, sDrHoleSmall, zThickness / 2);  
+  new TGeoTube(holeLargeName.c_str(), 0, sDrHoleLarge, zThickness / 2);
+  new TGeoBBox(holeSmallCutName.c_str(), xHoleCut, sDrHoleSmall, zThickness / 2);
+  new TGeoBBox(holeLargeCutName.c_str(), xHoleCut, sDrHoleSmall, zThickness / 2);
   
   for (int ir = 0; ir < sNumberOfRings; ir++) {
 
     // Radii without separation
-    float rMin = mvrAvgScint.at(ir);
-    float rMax = mvrAvgScint.at(ir + 1);
+    float rMin = mRAvgRing.at(ir);
+    float rMax = mRAvgRing.at(ir + 1);
     float rMid = rMin + (rMax - rMin) / 2;
     
     // "a"-type cell
@@ -218,7 +220,7 @@ void Geometry::initializeCells(std::string cellType, float zThickness, TGeoMediu
     // 0--------------> x
 
     std::stringstream aCellName;
-    aCellName << "FV0" << cellType << "a" << ir + 1;
+    aCellName << "FV0" << cellType << sCellName << "a" << ir + 1;
 
     LOG(INFO) << "FV0 Geometry::initializeCells(): Initializing cell " << aCellName.str();
 
@@ -229,23 +231,34 @@ void Geometry::initializeCells(std::string cellType, float zThickness, TGeoMediu
     if (ir == 0) {
       // The innermost "a"-type cell
       std::string a1CellShapeFullName = aCellShapeName + "Full";
-      std::string a1CellShapeCutName = aCellShapeName + "Cut";
-      std::string a1CellShapeCutTransName = a1CellShapeCutName + "Trans";
+      std::string a1CellShapeHoleCutName = aCellShapeName + "HoleCut";
+      std::string a1CellShapeHoleCutTransName = a1CellShapeHoleCutName + "Trans";
       
-      new TGeoTubeSeg(a1CellShapeFullName.c_str(), 0, mvrMaxScint.at(ir), dz, 45, 90);
-      new TGeoTubeSeg(a1CellShapeCutName.c_str(), 0, mvrMinScint.at(ir), dz, 0, 360);
-      TGeoTranslation* a1CellShapeCutTrans = new TGeoTranslation(a1CellShapeCutTransName.c_str(),
-                                                                 sRingInnerRadiusDx, 0, 0);
-      a1CellShapeCutTrans->RegisterYourself();
+      new TGeoTubeSeg(a1CellShapeFullName.c_str(), 0, mRMaxScint.at(ir), zThickness / 2 - sEpsilon, 45, 90);
+      new TGeoTube(a1CellShapeHoleCutName.c_str(), 0, mRMinScint.at(ir), zThickness);
 
-      std::string a1BoolFormula = a1CellShapeFullName + "-" + a1CellShapeCutName + ":" + a1CellShapeCutTransName;
+      createAndRegisterTrans(a1CellShapeHoleCutTransName, sRingInnerRadiusDx, 0, 0);
+
+      std::string a1BoolFormula = a1CellShapeFullName + "-" + a1CellShapeHoleCutName + ":" + a1CellShapeHoleCutTransName;
       new TGeoCompositeShape(aCellShapeName.c_str(), a1BoolFormula.c_str());
     } else {
       // The rest of the "a"-type cells
-      new TGeoTubeSeg(aCellShapeName.c_str(), mvrMinScint.at(ir), mvrMaxScint.at(ir), dz, 45, 90);
+      new TGeoTubeSeg(aCellShapeName.c_str(), mRMinScint.at(ir), mRMaxScint.at(ir), zThickness / 2, 45, 90);
     }
 
     // Translations for screw holes
+    //
+    // 1 = outer left
+    // 2 = inner left
+    // 3 = outer right
+    // 4 = inner right
+    // 5 = outer middle
+    // 6 = inner middle
+    // 7 = half-lenght left
+    // 8 = half-length right
+    //
+    // holes 1, 2 and 7 are sligtly shifted along the rim of the cell
+
     std::string aHole1TransName = aCellName.str() + "Hole1Trans";
     std::string aHole2TransName = aCellName.str() + "Hole2Trans";
     std::string aHole3TransName = aCellName.str() + "Hole3Trans";
@@ -258,51 +271,17 @@ void Geometry::initializeCells(std::string cellType, float zThickness, TGeoMediu
     std::string aHole2CutTransName = aCellName.str() + "Hole2CutTrans";
     std::string aHole7CutTransName = aCellName.str() + "Hole7CutTrans";
 
-    // 1 = outer left
-    // 2 = inner left
-    // 3 = outer right
-    // 4 = inner right
-    // 5 = outer middle
-    // 6 = inner middle
-    // 7 = half-lenght left
-    // 8 = half-length right
-
-    // holes 1, 2 and 7 are sligtly shifted along the rim of the cell
-
-    TGeoTranslation* aHole1Trans = new TGeoTranslation(aHole1TransName.c_str(), dxHole,
-                                                       cos(asin(dxHole/rMax)) * rMax, 0);
-    TGeoTranslation* aHole2Trans = new TGeoTranslation(aHole2TransName.c_str(), dxHole,
-                                                       cos(asin(dxHole/rMin)) * rMin, 0);
-    TGeoTranslation* aHole3Trans = new TGeoTranslation(aHole3TransName.c_str(), sin(45 * M_PI/180) * rMax,
-                                                       cos(45 * M_PI/180) * rMax, 0);
-    TGeoTranslation* aHole4Trans = new TGeoTranslation(aHole4TransName.c_str(), sin(45 * M_PI/180) * rMin,
-                                                       cos(45 * M_PI/180) * rMin, 0);
-    TGeoTranslation* aHole5Trans = new TGeoTranslation(aHole5TransName.c_str(), sin(22.5 * M_PI/180) * rMax,
-                                                       cos(22.5 * M_PI/180) * rMax, 0);
-    TGeoTranslation* aHole6Trans = new TGeoTranslation(aHole6TransName.c_str(), sin(22.5 * M_PI/180) * rMin,
-                                                       cos(22.5 * M_PI/180) * rMin, 0);
-    TGeoTranslation* aHole7Trans = new TGeoTranslation(aHole7TransName.c_str(), dxHole,
-                                                       cos(asin(dxHole/rMid)) * rMid, 0);
-    TGeoTranslation* aHole8Trans = new TGeoTranslation(aHole8TransName.c_str(), sin(45 * M_PI/180) * rMid,
-                                                       cos(45 * M_PI/180) * rMid, 0);
-    TGeoTranslation* aHole1CutTrans = new TGeoTranslation(aHole1CutTransName.c_str(), 0,
-                                                          cos(asin(dxHole/rMax)) * rMax, 0);
-    TGeoTranslation* aHole2CutTrans = new TGeoTranslation(aHole2CutTransName.c_str(), 0,
-                                                          cos(asin(dxHole/rMin)) * rMin, 0);
-    TGeoTranslation* aHole7CutTrans = new TGeoTranslation(aHole7CutTransName.c_str(), 0,
-                                                          cos(asin(dxHole/rMid)) * rMid, 0);
-
-    aHole1Trans->RegisterYourself();
-    aHole2Trans->RegisterYourself();
-    aHole3Trans->RegisterYourself();
-    aHole4Trans->RegisterYourself();
-    aHole5Trans->RegisterYourself();
-    aHole6Trans->RegisterYourself();
-    aHole7Trans->RegisterYourself();
-    aHole8Trans->RegisterYourself();
-    aHole1CutTrans->RegisterYourself();
-    aHole2CutTrans->RegisterYourself();
-    aHole7CutTrans->RegisterYourself();
+    createAndRegisterTrans(aHole1TransName, dxHole, cos(asin(dxHole/rMax)) * rMax, 0);
+    createAndRegisterTrans(aHole2TransName, dxHole, cos(asin(dxHole/rMin)) * rMin, 0);
+    createAndRegisterTrans(aHole3TransName, sin(45 * M_PI/180) * rMax, cos(45 * M_PI/180) * rMax, 0);
+    createAndRegisterTrans(aHole4TransName, sin(45 * M_PI/180) * rMin, cos(45 * M_PI/180) * rMin, 0);
+    createAndRegisterTrans(aHole5TransName, sin(22.5 * M_PI/180) * rMax, cos(22.5 * M_PI/180) * rMax, 0);
+    createAndRegisterTrans(aHole6TransName, sin(22.5 * M_PI/180) * rMin, cos(22.5 * M_PI/180) * rMin, 0);
+    createAndRegisterTrans(aHole7TransName, dxHole, cos(asin(dxHole/rMid)) * rMid, 0);
+    createAndRegisterTrans(aHole8TransName, sin(45 * M_PI/180) * rMid, cos(45 * M_PI/180) * rMid, 0);
+    createAndRegisterTrans(aHole1CutTransName, 0, cos(asin(dxHole/rMax)) * rMax, 0);
+    createAndRegisterTrans(aHole2CutTransName, 0, cos(asin(dxHole/rMin)) * rMin, 0);
+    createAndRegisterTrans(aHole7CutTransName, 0, cos(asin(dxHole/rMid)) * rMid, 0);
 
     // Composite shape
     std::string aBoolFormula = aCellShapeName;
@@ -321,26 +300,26 @@ void Geometry::initializeCells(std::string cellType, float zThickness, TGeoMediu
       std::string screwHoleName = (ir < 3) ? holeSmallName : holeLargeName;
       std::string screwHoleCutName = (ir < 3) ? holeSmallCutName : holeLargeCutName;
 
-      aBoolFormula.append("-" + screwHoleName + ":" + aHole2TransName);
-      aBoolFormula.append("-" + screwHoleCutName + ":" + aHole2CutTransName);
-      aBoolFormula.append("-" + screwHoleName + ":" + aHole4TransName);
+      aBoolFormula += "-" + screwHoleName + ":" + aHole2TransName;
+      aBoolFormula += "-" + screwHoleCutName + ":" + aHole2CutTransName;
+      aBoolFormula += "-" + screwHoleName + ":" + aHole4TransName;
     }
 
     // outer middle hole
     if (ir > 1) {
-      aBoolFormula.append("-" + holeLargeName + ":" + aHole5TransName);
+      aBoolFormula += "-" + holeLargeName + ":" + aHole5TransName;
     }
 
     // inner middle hole
     if (ir > 2) {
-      aBoolFormula.append("-" + holeLargeName + ":" + aHole6TransName);
+      aBoolFormula += "-" + holeLargeName + ":" + aHole6TransName;
     }
 
     // half-length holes
     if (ir == 4) {
-      aBoolFormula.append("-" + holeLargeName + ":" + aHole7TransName);
-      aBoolFormula.append("-" + holeLargeCutName + ":" + aHole7CutTransName);
-      aBoolFormula.append("-" + holeLargeName + ":" + aHole8TransName);
+      aBoolFormula += "-" + holeLargeName + ":" + aHole7TransName;
+      aBoolFormula += "-" + holeLargeCutName + ":" + aHole7CutTransName;
+      aBoolFormula += "-" + holeLargeName + ":" + aHole8TransName;
     }
 
     LOG(INFO) << "FV0 Geometry::initializeCells(): Composite shape formula: " << aBoolFormula;
@@ -350,7 +329,6 @@ void Geometry::initializeCells(std::string cellType, float zThickness, TGeoMediu
 
     // Cell volume
     TGeoVolume* aCell = new TGeoVolume(aCellName.str().c_str(), aCellCs, medium);
-    aCell->RegisterYourself();
     mvSensitiveVolumeNames.push_back(aCell->GetName());
 
     // "b"-type cells
@@ -368,7 +346,7 @@ void Geometry::initializeCells(std::string cellType, float zThickness, TGeoMediu
     // 0--------------> x
 
     std::stringstream bCellName;
-    bCellName << "FV0" << cellType << "b" << ir + 1;
+    bCellName << "FV0" << cellType << sCellName << "b" << ir + 1;
 
     LOG(INFO) << "FV0 Geometry::initializeCells(): Initializing cell " << bCellName.str();
 
@@ -379,33 +357,23 @@ void Geometry::initializeCells(std::string cellType, float zThickness, TGeoMediu
     if (ir == 0) {
       // The innermost "b"-type cell
       std::string b1CellShapeFullName = bCellShapeName + "Full";
-      std::string b1CellShapeCutName = bCellShapeName + "Cut";
-      std::string b1CellShapeCutTransName = b1CellShapeCutName + "Trans";
+      std::string b1CellShapeHoleCutName = bCellShapeName + "Cut";
+      std::string b1CellShapeHoleCutTransName = b1CellShapeHoleCutName + "Trans";
 
-      TGeoTubeSeg* b1CellShapeFull = new TGeoTubeSeg(b1CellShapeFullName.c_str(), 0, mvrMaxScint.at(ir), dz, 0, 45);
-      TGeoTubeSeg* b1CellShapeCut = new TGeoTubeSeg(b1CellShapeCutName.c_str(), 0, mvrMinScint.at(ir), dz, 0, 360);
-      TGeoTranslation* b1CellShapeCutTrans = new TGeoTranslation(b1CellShapeCutTransName.c_str(),
-                                                                 sRingInnerRadiusDx, 0, 0);
-      b1CellShapeCutTrans->RegisterYourself();
+      new TGeoTubeSeg(b1CellShapeFullName.c_str(), 0, mRMaxScint.at(ir), zThickness / 2 - sEpsilon, 0, 45);
+      new TGeoTube(b1CellShapeHoleCutName.c_str(), 0, mRMinScint.at(ir), zThickness);
+      
+      createAndRegisterTrans(b1CellShapeHoleCutTransName, sRingInnerRadiusDx, 0, 0);
 
-      std::string b1BoolFormula = b1CellShapeFullName + "-" + b1CellShapeCutName + ":" + b1CellShapeCutTransName;
-      TGeoCompositeShape* b1CellShape = new TGeoCompositeShape(bCellShapeName.c_str(), b1BoolFormula.c_str());
+      std::string b1BoolFormula = b1CellShapeFullName + "-" + b1CellShapeHoleCutName + ":" + b1CellShapeHoleCutTransName;
+      new TGeoCompositeShape(bCellShapeName.c_str(), b1BoolFormula.c_str());
     } else {
       // The rest of the "b"-type cells
-      TGeoTubeSeg* bCellShape = new TGeoTubeSeg(bCellShapeName.c_str(), mvrMinScint.at(ir), mvrMaxScint.at(ir), dz, 0,
-                                                45);
+      new TGeoTubeSeg(bCellShapeName.c_str(), mRMinScint.at(ir), mRMaxScint.at(ir), zThickness / 2, 0, 45);
     }
 
     // Translations for holes
-    std::string bHole1TransName = bCellName.str() + "Hole1Trans";
-    std::string bHole2TransName = bCellName.str() + "Hole2Trans";
-    std::string bHole3TransName = bCellName.str() + "Hole3Trans";
-    std::string bHole4TransName = bCellName.str() + "Hole4Trans";
-    std::string bHole5TransName = bCellName.str() + "Hole5Trans";
-    std::string bHole6TransName = bCellName.str() + "Hole6Trans";
-    std::string bHole7TransName = bCellName.str() + "Hole7Trans";
-    std::string bHole8TransName = bCellName.str() + "Hole8Trans";
-
+    //
     // 1 = outer left
     // 2 = inner left
     // 3 = outer right
@@ -415,28 +383,23 @@ void Geometry::initializeCells(std::string cellType, float zThickness, TGeoMediu
     // 7 = half-lenght left
     // 8 = half-length right
 
-    TGeoTranslation* bHole1Trans = new TGeoTranslation(bHole1TransName.c_str(), sin(45 * M_PI/180) * rMax,
-                                                       cos(45 * M_PI/180) * rMax, 0);
-    TGeoTranslation* bHole2Trans = new TGeoTranslation(bHole2TransName.c_str(), sin(45 * M_PI/180) * rMin,
-                                                       cos(45 * M_PI/180) * rMin, 0);
-    TGeoTranslation* bHole3Trans = new TGeoTranslation(bHole3TransName.c_str(), rMax, 0, 0);
-    TGeoTranslation* bHole4Trans = new TGeoTranslation(bHole4TransName.c_str(), rMin, 0, 0);
-    TGeoTranslation* bHole5Trans = new TGeoTranslation(bHole5TransName.c_str(), cos(22.5 * M_PI/180) * rMax,
-                                                       sin(22.5 * M_PI/180) * rMax, 0);
-    TGeoTranslation* bHole6Trans = new TGeoTranslation(bHole6TransName.c_str(), cos(22.5 * M_PI/180) * rMin,
-                                                       sin(22.5 * M_PI/180) * rMin, 0);
-    TGeoTranslation* bHole7Trans = new TGeoTranslation(bHole7TransName.c_str(), sin(45 * M_PI/180) * rMid,
-                                                       cos(45 * M_PI/180) * rMid, 0);
-    TGeoTranslation* bHole8Trans = new TGeoTranslation(bHole8TransName.c_str(), rMid, 0, 0);
-    
-    bHole1Trans->RegisterYourself();
-    bHole2Trans->RegisterYourself();
-    bHole3Trans->RegisterYourself();
-    bHole4Trans->RegisterYourself();
-    bHole5Trans->RegisterYourself();
-    bHole6Trans->RegisterYourself();
-    bHole7Trans->RegisterYourself();
-    bHole8Trans->RegisterYourself();
+    std::string bHole1TransName = bCellName.str() + "Hole1Trans";
+    std::string bHole2TransName = bCellName.str() + "Hole2Trans";
+    std::string bHole3TransName = bCellName.str() + "Hole3Trans";
+    std::string bHole4TransName = bCellName.str() + "Hole4Trans";
+    std::string bHole5TransName = bCellName.str() + "Hole5Trans";
+    std::string bHole6TransName = bCellName.str() + "Hole6Trans";
+    std::string bHole7TransName = bCellName.str() + "Hole7Trans";
+    std::string bHole8TransName = bCellName.str() + "Hole8Trans";
+
+    createAndRegisterTrans(bHole1TransName, sin(45 * M_PI/180) * rMax, cos(45 * M_PI/180) * rMax, 0);
+    createAndRegisterTrans(bHole2TransName, sin(45 * M_PI/180) * rMin, cos(45 * M_PI/180) * rMin, 0);
+    createAndRegisterTrans(bHole3TransName, rMax, 0, 0);
+    createAndRegisterTrans(bHole4TransName, rMin, 0, 0);
+    createAndRegisterTrans(bHole5TransName, cos(22.5 * M_PI/180) * rMax, sin(22.5 * M_PI/180) * rMax, 0);
+    createAndRegisterTrans(bHole6TransName, cos(22.5 * M_PI/180) * rMin, sin(22.5 * M_PI/180) * rMin, 0);
+    createAndRegisterTrans(bHole7TransName, sin(45 * M_PI/180) * rMid, cos(45 * M_PI/180) * rMid, 0);
+    createAndRegisterTrans(bHole8TransName, rMid, 0, 0);
 
     // Composite shape
     std::string bBoolFormula = bCellShapeName;
@@ -453,24 +416,24 @@ void Geometry::initializeCells(std::string cellType, float zThickness, TGeoMediu
     if (ir > 0) {
       std::string holeName = (ir < 3) ? holeSmallName : holeLargeName;
 
-      bBoolFormula.append("-" + holeName + ":" + bHole2TransName);
-      bBoolFormula.append("-" + holeName + ":" + bHole4TransName);
+      bBoolFormula += "-" + holeName + ":" + bHole2TransName;
+      bBoolFormula += "-" + holeName + ":" + bHole4TransName;
     }
 
     // outer middle hole
     if (ir > 1) {
-      bBoolFormula.append("-" + holeLargeName + ":" + bHole5TransName);
+      bBoolFormula += "-" + holeLargeName + ":" + bHole5TransName;
     }
 
     // inner middle hole
     if (ir > 2) {
-      bBoolFormula.append("-" + holeLargeName + ":" + bHole6TransName);
+      bBoolFormula += "-" + holeLargeName + ":" + bHole6TransName;
     }
 
     // half-lenght holes
     if (ir == 4) {
-      bBoolFormula.append("-" + holeLargeName + ":" + bHole7TransName);
-      bBoolFormula.append("-" + holeLargeName + ":" + bHole8TransName);
+      bBoolFormula += "-" + holeLargeName + ":" + bHole7TransName;
+      bBoolFormula += "-" + holeLargeName + ":" + bHole8TransName;
     }
 
     std::string bCellCSName = bCellName.str() + "CS";
@@ -478,28 +441,27 @@ void Geometry::initializeCells(std::string cellType, float zThickness, TGeoMediu
 
     // Cell volume
     TGeoVolume* bCell = new TGeoVolume(bCellName.str().c_str(), bCellCs, medium);
-    bCell->RegisterYourself();
     mvSensitiveVolumeNames.push_back(bCell->GetName());
   }
 }
 
 void Geometry::initializeScintCells()
 {
-  TGeoMedium* kMed = gGeoManager->GetMedium("V0_Scintillator$");
-  initializeCells(sScintCellName, sDzScint, kMed);
+  TGeoMedium* medium = gGeoManager->GetMedium("V0_Scintillator$");
+  initializeCells(sScintName, sDzScint, medium);
 }
 
 void Geometry::initializePlasticCells()
 {
-  TGeoMedium* kMed = gGeoManager->GetMedium("V0_Plastic$");
-  initializeCells(sPlastCellName, sDzPlast, kMed);
+  TGeoMedium* medium = gGeoManager->GetMedium("V0_Plastic$");
+  initializeCells(sPlastName, sDzPlast, medium);
 }
 
 void Geometry::initializeFibers()
 {
   LOG(INFO) << "FVO Geometry::initializeFibers(): Initializing fibers";
 
-  int numberOfFiberVols = mvrMinFiber.size();
+  int numberOfFiberVols = mRMinFiber.size();
   float dzFibers = sDzAlu - sDzAluBack - sDzAluFront - sDzScint - sDzPlast - 2 * sEpsilon;  // depth of the fiber volumes
 
   TGeoMedium* medFiberInner = gGeoManager->GetMedium("FiberInner$");
@@ -517,9 +479,9 @@ void Geometry::initializeFibers()
   std::string fiberConeCutTransName = fiberConeCutName + "Trans";
   std::string fiberHoleCutTransName = fiberHoleCutName + "Trans";
 
-  new TGeoBBox(fiberSepCutName.c_str(), sDrSeparationScint, mvrMaxFiber.back(), dzFibers / 2);
-  new TGeoConeSeg(fiberConeCutName.c_str(), sDzAluCone / 2, 0, sDrMinAluCone + sXYThicknessAluCone, 0, sDrMinAluFront, -90, 90);
-  new TGeoTube(fiberHoleCutName.c_str(), 0, mvrMinScint.front(), dzFibers / 2);
+  new TGeoBBox(fiberSepCutName.c_str(), sDxAluCover + sDrSeparationScint, mRMaxFiber.back() + sEpsilon, dzFibers / 2 + sEpsilon );
+  new TGeoConeSeg(fiberConeCutName.c_str(), sDzAluCone / 2 + sEpsilon, 0, sDrMinAluCone + sXYThicknessAluCone + sEpsilon, 0, sDrMinAluFront + sEpsilon, -90, 90);
+  new TGeoTube(fiberHoleCutName.c_str(), 0, mRMinScint.front(), dzFibers / 2 + sEpsilon);
   
   createAndRegisterTrans(fiberTransName, 0 , 0, sZFiber);
   createAndRegisterTrans(fiberConeCutTransName, 0, 0, sZCone);
@@ -531,7 +493,7 @@ void Geometry::initializeFibers()
 
     LOG(INFO) << "FV0 Geometry::initializeFibers(): Initializing fiber volume " << fiberShapeName.str();
 
-    new TGeoTubeSeg(fiberShapeName.str().c_str(), mvrMinFiber.at(i), mvrMaxFiber.at(i), dzFibers / 2, -90, 90);
+    new TGeoTubeSeg(fiberShapeName.str().c_str(), mRMinFiber.at(i), mRMaxFiber.at(i) - sEpsilon, dzFibers / 2, -90, 90);
 
     // Composite shape
     std::string boolFormula = "";
@@ -540,6 +502,7 @@ void Geometry::initializeFibers()
     boolFormula += "-" + fiberConeCutName + ":" + fiberConeCutTransName;
 
     if (i == 0) {
+      // Cut out the hole in the innermost fiber volume
       boolFormula += "-" + fiberHoleCutName + ":" + fiberHoleCutTransName;
     }
 
@@ -674,7 +637,7 @@ void Geometry::initializeMetalContainer()
   createAndRegisterTrans(outerShieldTransName, 0, 0, zPosOuterShield);
 
   // Inner shield
-  float dzInnerShield = sDzAlu - sDzAluCone - dzShieldGap;                                  // depth of the inner shield
+  float dzInnerShield = sDzAlu - sDzAluCone - dzShieldGap;                              // depth of the inner shield
   float zPosInnerShield = sZAluBack - sDzAluBack / 2 + dzShieldGap + dzInnerShield / 2; // z-position of the inner shield relative to the backplate
   
   std::string innerShieldName = "FV0_InnerShield";
@@ -760,7 +723,7 @@ void Geometry::buildGeometry()
   }
 
   // Top volume of FIT V0 detector
-  TGeoVolumeAssembly* vFV0 = new TGeoVolumeAssembly("FITV0");
+  TGeoVolumeAssembly* vFV0 = new TGeoVolumeAssembly("FV0");
   LOG(INFO) << "FV0 Geometry::buildGeometry()::Volume name = " << vFV0->GetName();
 
   assembleSensVols(vFV0);
@@ -768,9 +731,9 @@ void Geometry::buildGeometry()
     assembleNonSensVols(vFV0);
   }
 
-  TGeoTranslation* trGlobalZshift = new TGeoTranslation(0, 0, sZposition);
+  TGeoTranslation* globalShift = new TGeoTranslation(sXGlobal, sYGlobal, sZGlobal);
 
-  vALIC->AddNode(vFV0, 0, trGlobalZshift);
+  vALIC->AddNode(vFV0, 1, globalShift);
 }
 
 void Geometry::assembleSensVols(TGeoVolumeAssembly* vFV0)
@@ -785,52 +748,23 @@ void Geometry::assembleNonSensVols(TGeoVolumeAssembly* vFV0)
   assembleMetalContainer(vFV0);
 }
 
-void Geometry::assembleScintSectors(TGeoVolumeAssembly* volV0)
+void Geometry::assembleScintSectors(TGeoVolumeAssembly* vFV0)
 {
-  TGeoVolumeAssembly* v0scint = new TGeoVolumeAssembly("FV0SCINT");
-  TGeoVolumeAssembly* v0ScintLeft = new TGeoVolumeAssembly("FV0SCINTLEFT");
-  TGeoVolumeAssembly* v0ScintRight = new TGeoVolumeAssembly("FV0SCINTRIGHT");
-
-  for (uint16_t isector = 0; isector < ceil(mvSectorTrans.size() / 2); isector++) {
-    TGeoVolumeAssembly* sector = buildSector(sScintCellName, isector);
-    v0ScintLeft->AddNode(sector, isector + 1, mvSectorTrans.at(isector));
-  }
-  
-  for (uint16_t isector = ceil(mvSectorTrans.size() / 2); isector < mvSectorTrans.size(); isector++) {
-    TGeoVolumeAssembly* sector = buildSector(sScintCellName, isector);
-    v0ScintRight->AddNode(sector, isector + 1, mvSectorTrans.at(isector));
-  }
-  
-  v0scint->AddNode(v0ScintLeft, 1);
-  v0scint->AddNode(v0ScintRight, 1);
-  volV0->AddNode(v0scint, 1);
+  TGeoVolumeAssembly* sectors = buildSectorAssembly(sScintName);
+  vFV0->AddNode(sectors, 1);
 }
 
-void Geometry::assemblePlasticSectors(TGeoVolumeAssembly* volV0) {
-  TGeoVolumeAssembly* v0Plast = new TGeoVolumeAssembly("FV0PLAST");
-  TGeoVolumeAssembly* v0PlastLeft = new TGeoVolumeAssembly("FV0PLASTLEFT");
-  TGeoVolumeAssembly* v0PlastRight = new TGeoVolumeAssembly("FV0PLASTRIGHT");
-
-  for (uint16_t isector = 0; isector < ceil(mvSectorTrans.size() / 2); isector++) {
-    TGeoVolumeAssembly* sector = buildSector(sPlastCellName, isector);
-    v0PlastLeft->AddNode(sector, isector + 1, mvSectorTrans.at(isector));
-  }
-  
-  for (uint16_t isector = ceil(mvSectorTrans.size() / 2); isector < mvSectorTrans.size(); isector++) {
-    TGeoVolumeAssembly* sector = buildSector(sPlastCellName, isector);
-    v0PlastRight->AddNode(sector, isector + 1, mvSectorTrans.at(isector));
-  }
-  
-  v0Plast->AddNode(v0PlastLeft, 1);
-  v0Plast->AddNode(v0PlastRight, 1);
-  volV0->AddNode(v0Plast, 1, new TGeoTranslation(0, 0, sZPlast));
+void Geometry::assemblePlasticSectors(TGeoVolumeAssembly* vFV0)
+{
+  TGeoVolumeAssembly* sectors = buildSectorAssembly(sPlastName);
+  vFV0->AddNode(sectors, 1, new TGeoTranslation(0, 0, sZPlast));
 }
 
 void Geometry::assembleFibers(TGeoVolumeAssembly* vFV0)
 {
   TGeoVolumeAssembly* fibers = new TGeoVolumeAssembly("FV0FIBERS");
 
-  for (int i = 0; i < mvrMinFiber.size(); i++) {
+  for (int i = 0; i < mRMinFiber.size(); i++) {
     std::stringstream ssFiberName;
     ssFiberName << "FV0" << sFiberName << i + 1;
     TGeoVolume* fiber = gGeoManager->GetVolume(ssFiberName.str().c_str());
@@ -844,7 +778,8 @@ void Geometry::assembleFibers(TGeoVolumeAssembly* vFV0)
   vFV0->AddNode(fibers, 2, reflection);
 }
 
-void Geometry::assembleMetalContainer(TGeoVolumeAssembly* volV0) {
+void Geometry::assembleMetalContainer(TGeoVolumeAssembly* volV0)
+{
   std::string containerName = "FV0" + sContainerName;
   TGeoVolume* container = gGeoManager->GetVolume(containerName.c_str());
   if (!container) {
@@ -858,34 +793,65 @@ void Geometry::assembleMetalContainer(TGeoVolumeAssembly* volV0) {
   }
 }
 
+TGeoVolumeAssembly* Geometry::buildSectorAssembly(std::string cellName)
+{
+  std::string assemblyName = "FV0" + cellName;
+  TGeoVolumeAssembly* assembly = new TGeoVolumeAssembly(assemblyName.c_str());
+  TGeoVolumeAssembly* left = new TGeoVolumeAssembly((assemblyName + "LEFT").c_str());
+  TGeoVolumeAssembly* right = new TGeoVolumeAssembly((assemblyName + "RIGHT").c_str());
+
+  for (int iSector = 0; iSector < ceil(mSectorTrans.size() / 2); iSector++) {
+    TGeoVolumeAssembly* sector = buildSector(cellName, iSector);
+    left->AddNode(sector, iSector + 1, mSectorTrans.at(iSector));
+  }
+
+  for (int iSector = ceil(mSectorTrans.size() / 2); iSector < mSectorTrans.size(); iSector++) {
+    TGeoVolumeAssembly* sector = buildSector(cellName, iSector);
+    right->AddNode(sector, iSector + 1, mSectorTrans.at(iSector));
+  }
+
+  assembly->AddNode(left, 1);
+  assembly->AddNode(right, 1);
+  
+  return assembly;
+}
+
 TGeoVolumeAssembly* Geometry::buildSector(std::string cellType, int iSector)
 {
   std::stringstream ssSectorName;
-  ssSectorName << "FV0" << cellType << iSector + 1;
+  ssSectorName << "FV0" << cellType << sSectorName << iSector + 1;
 
   LOG(DEBUG) << "FV0 Geometry::buildSector(): building sector " << ssSectorName.str();
 
   TGeoVolumeAssembly* sector = new TGeoVolumeAssembly(ssSectorName.str().c_str());
   
   for (int i = 0; i < sNumberOfRings; i++) {
-    std::stringstream cellName;
-    cellName << "FV0" << cellType << sCellTypes[iSector] << i + 1;
+    std::stringstream ssCellName;
+    ssCellName << "FV0" << cellType << sCellName << sCellTypes[iSector] << i + 1;
 
-    TGeoVolume* cell = gGeoManager->GetVolume(cellName.str().c_str());
+    TGeoVolume* cell = gGeoManager->GetVolume(ssCellName.str().c_str());
 
     if (!cell) {
-      LOG(WARNING) << "FV0: Couldn't find cell volume " << cellName.str();
+      LOG(WARNING) << "FV0: Couldn't find cell volume " << ssCellName.str();
     } else {
-      LOG(DEBUG) << "FV0 Geometry::buildSector(): adding cell volume " << cellName.str();
-      sector->AddNode(cell, i + 1);
-    }    
+      LOG(DEBUG) << "FV0 Geometry::buildSector(): adding cell volume " << ssCellName.str();
+      sector->AddNode(cell, 1);
+    }
   }
 
   return sector;
 }
 
-TGeoTranslation* Geometry::createAndRegisterTrans(std::string name, double dx, double dy, double dz) {
+TGeoTranslation* Geometry::createAndRegisterTrans(std::string name, double dx, double dy, double dz)
+{
   TGeoTranslation* trans = new TGeoTranslation(name.c_str(), dx, dy, dz);
   trans->RegisterYourself();
   return trans;
+}
+
+TGeoRotation* Geometry::createAndRegisterRot(std::string name, double phi, double theta, double psi)
+{
+  TGeoRotation* rot = new TGeoRotation(name.c_str(), phi, theta, psi);
+  rot->RegisterYourself();
+  return rot;
 }

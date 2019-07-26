@@ -52,6 +52,9 @@ class Geometry
   Geometry(const Geometry& geom);
 
   static constexpr float sEpsilon = 0.01;                  // variable used to make sure one spatial dimension is infinitesimaly larger than the other
+  static constexpr float sXGlobal = 0;                      // global x-position of the geometrical center of the sensitive parts of the detector
+  static constexpr float sYGlobal = 0;                      // global y-position of the geometrical center of the sensitive parts of the detector
+  static constexpr float sZGlobal = 320;                      // global z-position of the geometrical center of the sensitive parts of the detector
   static constexpr float sDrSeparationScint = 0.03 + 0.04; // paint thickness + half of separation gap
   static constexpr float sDzScint = 4;                     // thickness of scintillator
   static constexpr float sDzPlast = 1;                     // thickness of fiber plastic
@@ -60,7 +63,6 @@ class Geometry
   static constexpr int sBaseNumberOfSectors = 8; // number of sectors
   // TODO: Adjust the sZposition once the simulation geometry is implemented, T0 starts at 328
   // at sZposition==320, there is a gap (to be filled with fibers and support) of 8 cm between the plastic of V0+ and aluminum covers of T0+
-  static constexpr float sZposition = 320 - sDzScint / 2;                                                // z-position of the geometrical center of the detectors sensitive part
   static constexpr int sNumberOfRings = 5;                                                               // number of rings
   static constexpr float sRingRadiiScint[sNumberOfRings + 1] = { 4.01, 7.3, 12.9, 21.25, 38.7, 72.115 }; // average ring radii
   static constexpr float sRingInnerRadiusDx = -0.15;                                                     // shift of the inner radius origin
@@ -76,6 +78,8 @@ class Geometry
   const std::vector<std::string> getSensitiveVolumeNames() { return mvSensitiveVolumeNames; };
 
  private:
+  static constexpr float sDrHoleLarge = 0.415;              // radius of the large scintillator hole
+  static constexpr float sDrHoleSmall = 0.265;              // radius of the small scintillator hole
   // Aluminium container constants
   static constexpr float sDzAlu = 30;                       // depth of aluminium container
   static constexpr float sDrAluHole = 4.05;                 // radius of beam hole
@@ -110,6 +114,15 @@ class Geometry
 
   /// Initialize vectors with geometry information.
   void initializeVectors();
+
+  /// Initialize the cell radii.
+  void initializeCellRadii();
+
+  /// Initialize sector transformations.
+  void initializeSectorTransformations();
+
+  /// Initialize fiber volume radii.
+  void initializeFiberRadii();
 
   /// Initialize the sensitive volumes.
   void initializeSensVols();
@@ -163,6 +176,11 @@ class Geometry
   /// \param  vFV0  The FIT V0 volume.
   void assembleMetalContainer(TGeoVolumeAssembly* vFV0);
 
+  /// Build sector assembly of specified type.
+  /// \param  cellName  The type of the cells in the sector assembly.
+  /// \return The sector assembly.
+  TGeoVolumeAssembly* buildSectorAssembly(std::string cellName);
+
   /// Build a sector of specified type and number.
   /// \param  cellType  The type of the cells in the sector.
   /// \param  iSector   The numbering of the sector.
@@ -172,22 +190,29 @@ class Geometry
   /// Helper function for creating and registering a TGeoTranslation.
   TGeoTranslation* createAndRegisterTrans(std::string name, double dx, double dy, double dz);
 
-  inline static const std::string sScintSectorName = "SCINTSECTOR";
-  inline static const std::string sScintCellName = "SCINTCELL";
-  inline static const std::string sPlastSectorName = "PLASTSECTOR";
-  inline static const std::string sPlastCellName = "PLASTSECTOR";
+  /// Helper function for creating and registering a TGeoRotation.
+  TGeoRotation* createAndRegisterRot(std::string name, double phi, double theta, double psi);
+
+  inline static const std::string sScintName = "SCINT";
+  inline static const std::string sPlastName = "PLAST";
+  inline static const std::string sSectorName = "SECTOR";
+  inline static const std::string sCellName = "CELL";
+  inline static const std::string sScintSectorName = sScintName + sSectorName;
+  inline static const std::string sScintCellName = sScintName + sCellName;
+  inline static const std::string sPlastSectorName = sPlastName + sSectorName;
+  inline static const std::string sPlastCellName = sPlastName + sCellName;
   inline static const std::string sFiberName = "FIBER";
   inline static const std::string sContainerName = "ALUCONTAINER";
 
   std::vector<std::string> mvSensitiveVolumeNames;
 
-  std::vector<float> mvrAvgScint;         // average ring radii (index 0 -> ring 1 min, index 1 -> ring 1 max and ring 2 min, ... index 5 -> ring 5 max)
-  // The following radii include separation between rings
-  std::vector<float> mvrMinScint;         // inner radii of a ring (.at(0) -> ring 1, .at(4) -> ring 5)
-  std::vector<float> mvrMaxScint;         // outer radii of a ring (.at(0) -> ring 1, .at(4) -> ring 5)
-  std::vector<TGeoMatrix*> mvSectorTrans; // transformations of sectors (.at(0) -> sector 1)
-  std::vector<float> mvrMinFiber;         // inner radii of fiber volumes (.at(0) -> fiber 1)
-  std::vector<float> mvrMaxFiber;         // outer radii of fiber volumes (.at(0) -> fiber 1)
+  std::vector<float> mRAvgRing;           // average ring radii (index 0 -> ring 1 min, index 1 -> ring 1 max and ring 2 min, ... index 5 -> ring 5 max)
+  // The following radii include separation between scintillator rings
+  std::vector<float> mRMinScint;          // inner radii of a ring (.at(0) -> ring 1, .at(4) -> ring 5)
+  std::vector<float> mRMaxScint;          // outer radii of a ring (.at(0) -> ring 1, .at(4) -> ring 5)
+  std::vector<float> mRMinFiber;          // inner radii of fiber volumes (.at(0) -> fiber 1)
+  std::vector<float> mRMaxFiber;          // outer radii of fiber volumes (.at(0) -> fiber 1)
+  std::vector<TGeoMatrix*> mSectorTrans;  // transformations of sectors (.at(0) -> sector 1)
 
   int mGeometryType; // same meaning as initType in constructor
 
