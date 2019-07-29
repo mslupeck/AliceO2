@@ -68,7 +68,7 @@ void Geometry::initializeVectors()
 
 void Geometry::initializeCellRadii()
 {
-  LOG(INFO) << "FV0 Geometry::initializeCellRadii(): Initializing FV0 cell ring radii.";
+  LOG(INFO) << "FV0 Geometry::initializeCellRadii(): Initializing FV0 cell ring radii";
 
   // Index of mRAvgRing is NOT linked directly to any ring number
   mRAvgRing.assign(sRingRadiiScint, sRingRadiiScint + sNumberOfRings + 1);
@@ -77,14 +77,14 @@ void Geometry::initializeCellRadii()
   for (uint16_t ir = 0; ir < mRAvgRing.size() - 1; ir++) {
     mRMinScint.push_back(mRAvgRing.at(ir) + sDrSeparationScint);
     mRMaxScint.push_back(mRAvgRing.at(ir + 1) - sDrSeparationScint);
-    LOG(INFO) << "FV0 Geometry::initializeCellRadii(): Ring " << ir << " min: " << mRMinScint.at(ir) << ", max: " << mRMaxScint.at(ir);
+    LOG(INFO) << "FV0 Geometry::initializeCellRadii(): Ring " << ir + 1 << " min: " << mRMinScint.at(ir) << ", max: " << mRMaxScint.at(ir);
   }
   // Now indices of mRMinScint and mRMaxScint correspond to the same ring
 }
 
 void Geometry::initializeSectorTransformations()
 {
-  LOG(INFO) << "FV0 Geometry::initializeSectorTransformations(): Initializing FV0 sector transformations.";
+  LOG(INFO) << "FV0 Geometry::initializeSectorTransformations(): Initializing FV0 sector transformations";
 
   for (uint16_t isector = 1; isector <= sBaseNumberOfSectors; isector++) {
     // isector = 1 corresponds to the first sector counter-clockwise from the y-axis + global azimuthal rotation
@@ -172,7 +172,7 @@ void Geometry::initializeCells(std::string cellType, float zThickness, TGeoMediu
   //
   // The reference to "a" and "b" can be understood with the CAD drawings of the detector.
 
-  LOG(INFO) << "FV0 Geometry::initializeCells(): Initializing " << cellType << " cells.";
+  LOG(INFO) << "FV0 Geometry::initializeCells(): Initializing " << cellType << " cells";
   
   float xHoleCut = 0.2;                               // width of extension of hole 1, 2 and 7 in the "a" cell
   float dxHole = sDrSeparationScint + xHoleCut;       // x-placement of holes 1, 2 and 7 in the "a" cell
@@ -322,8 +322,6 @@ void Geometry::initializeCells(std::string cellType, float zThickness, TGeoMediu
       aBoolFormula += "-" + holeLargeName + ":" + aHole8TransName;
     }
 
-    LOG(INFO) << "FV0 Geometry::initializeCells(): Composite shape formula: " << aBoolFormula;
-
     std::string aCellCSName = aCellName.str() + "CS";
     TGeoCompositeShape* aCellCs = new TGeoCompositeShape(aCellCSName.c_str(), aBoolFormula.c_str());
 
@@ -464,9 +462,9 @@ void Geometry::initializeFibers()
   int numberOfFiberVols = mRMinFiber.size();
   float dzFibers = sDzAlu - sDzAluBack - sDzAluFront - sDzScint - sDzPlast - 2 * sEpsilon;  // depth of the fiber volumes
 
-  TGeoMedium* medFiberInner = gGeoManager->GetMedium("FiberInner$");
-  TGeoMedium* medFiberMiddle = gGeoManager->GetMedium("FiberMiddle$");
-  TGeoMedium* medFiberOuter = gGeoManager->GetMedium("FiberOuter$");
+  TGeoMedium* medFiberInner = gGeoManager->GetMedium("V0_FiberInner$");
+  TGeoMedium* medFiberMiddle = gGeoManager->GetMedium("V0_FiberMiddle$");
+  TGeoMedium* medFiberOuter = gGeoManager->GetMedium("V0_FiberOuter$");
   TGeoMedium* medFiber[] = { medFiberInner, medFiberMiddle, medFiberOuter };
 
   std::string fiberName = "FV0_Fibers";   // No volume with this name
@@ -515,6 +513,7 @@ void Geometry::initializeFibers()
     if (!medFiber[i]) {
       LOG(WARN) << "FV0 Geometry::initializeFibers(): Medium for fiber volume " << fiberName.str() << " not found!";
     }
+
     new TGeoVolume(fiberName.str().c_str(), fiberCS, medFiber[i]);
   }
 }
@@ -628,7 +627,7 @@ void Geometry::initializeMetalContainer()
   float dzShield = sDzAlu - 2 * dzShieldGap;    // depth of the shields
   
   // Outer shield
-  float zPosOuterShield = sZAluBack + abs(sZAluBack - zPosFrontPlate) / 2;   // z-position of the outer shield
+  float zPosOuterShield = (sZAluBack + sZAluFront) / 2;   // z-position of the outer shield
   
   std::string outerShieldName = "FV0_OuterShield";
   std::string outerShieldTransName = outerShieldName + "Trans";
@@ -665,14 +664,7 @@ void Geometry::initializeMetalContainer()
   std::string coverHoleCutName = coverName + "HoleCut";
  
   new TGeoBBox(coverName.c_str(), sDxAluCover / 2, sDrMaxAluOuterShield, dzCover / 2);
-  new TGeoConeSeg(coverConeCutName.c_str(),
-                  sDzAluCone / 2,
-                  0,
-                  sDrMinAluCone + thicknessFrontPlateCone,
-                  0,
-                  sDrMinAluFront,
-                  -90,
-                  90);
+  new TGeoCone(coverConeCutName.c_str(), sDzAluCone / 2, 0, sDrMinAluCone + thicknessFrontPlateCone, 0, sDrMinAluFront);
   new TGeoTubeSeg(coverHoleCutName.c_str(), 0, sDrMinAluInnerShield, dzCover / 2, 0, 360);  
 
   std::string coverTransName = coverName + "Trans";
@@ -724,7 +716,7 @@ void Geometry::buildGeometry()
 
   // Top volume of FIT V0 detector
   TGeoVolumeAssembly* vFV0 = new TGeoVolumeAssembly("FV0");
-  LOG(INFO) << "FV0 Geometry::buildGeometry()::Volume name = " << vFV0->GetName();
+  LOG(INFO) << "FV0 Geometry::buildGeometry():: FV0 volume name = " << vFV0->GetName();
 
   assembleSensVols(vFV0);
   if (mGeometryType == eFull) {

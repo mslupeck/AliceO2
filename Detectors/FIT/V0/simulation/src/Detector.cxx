@@ -64,7 +64,7 @@ Detector::Detector(Bool_t isActive)
 
 void Detector::InitializeO2Detector()
 {
-  LOG(INFO) << "FIT_V0: Initializing O2 detector. Adding sensitive volume.";
+  LOG(INFO) << "FV0: Initializing O2 detector. Adding sensitive volumes.";
 
   std::string volSensitiveName;
   TGeoVolume* volSensitive;
@@ -174,6 +174,10 @@ void Detector::createMaterials()
   Float_t wPlast[nPlast] = { 0.08, 0.32, 0.6 } ;
   Float_t dPlast = 1.18;
 
+  Float_t dFiberInner = 0.087;
+  Float_t dFiberMiddle = 0.129;
+  Float_t dFiberOuter = 0.049;
+
   // Aluminium; TODO: Verify numbers, these are taken from the previous detector
   Float_t aAlu = 26.98;
   Float_t zAlu = 13;
@@ -209,15 +213,15 @@ void Detector::createMaterials()
   o2::base::Detector::Medium(Plastic, "Plastic$", matId, unsens, fieldType, maxField, tmaxfd, stemax, deemax, epsil,
                              stmin);
 
-  o2::base::Detector::Mixture(++matId, "FiberInner$", aPlast, zPlast, dPlast, nPlast, wPlast);
+  o2::base::Detector::Mixture(++matId, "FiberInner$", aPlast, zPlast, dFiberInner, nPlast, wPlast);
   o2::base::Detector::Medium(FiberInner, "FiberInner$", matId, unsens, fieldType, maxField, tmaxfd, stemax, deemax,
                              epsil, stmin);
 
-  o2::base::Detector::Mixture(++matId, "FiberMiddle$", aPlast, zPlast, dPlast * 2/3, nPlast, wPlast);
+  o2::base::Detector::Mixture(++matId, "FiberMiddle$", aPlast, zPlast, dFiberMiddle, nPlast, wPlast);
   o2::base::Detector::Medium(FiberMiddle, "FiberMiddle$", matId, unsens, fieldType, maxField, tmaxfd, stemax, deemax,
                              epsil, stmin);
 
-  o2::base::Detector::Mixture(++matId, "FiberOuter$", aPlast, zPlast, dPlast * 1/3, nPlast, wPlast);
+  o2::base::Detector::Mixture(++matId, "FiberOuter$", aPlast, zPlast, dFiberOuter, nPlast, wPlast);
   o2::base::Detector::Medium(FiberOuter, "FiberOuter$", matId, unsens, fieldType, maxField, tmaxfd, stemax, deemax,
                              epsil, stmin);
 
