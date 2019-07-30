@@ -55,10 +55,10 @@ class Geometry
   static constexpr float sXGlobal = 0;                      // global x-position of the geometrical center of the sensitive parts of the detector
   static constexpr float sYGlobal = 0;                      // global y-position of the geometrical center of the sensitive parts of the detector
   static constexpr float sZGlobal = 320;                    // global z-position of the geometrical center of the sensitive parts of the detector
+  static constexpr float sGlobalPhiRotation = 0;            // global phi rotation (to enable making two detector halves, possible to separate vertically)
   static constexpr float sDrSeparationScint = 0.03 + 0.04;  // paint thickness + half of separation gap
   static constexpr float sDzScint = 4;                      // thickness of scintillator
   static constexpr float sDzPlast = 1;                      // thickness of fiber plastic
-  static constexpr float sGlobalPhiRotation = 0;            // global phi rotation (to enable making two detector halves, possible to separate vertically)
   static constexpr float sDySeparationScint = sDrSeparationScint;
   static constexpr int sBaseNumberOfSectors = 8; // number of sectors
   // TODO: Adjust the sZposition once the simulation geometry is implemented, T0 starts at 328

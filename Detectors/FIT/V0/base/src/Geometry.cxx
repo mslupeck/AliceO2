@@ -46,6 +46,15 @@ const int Geometry::getCurrentCellId(TVirtualMC* fMC) {
   fMC->CurrentVolOffID(0, ring);
   fMC->CurrentVolOffID(1, sector);
 
+  // // TODO: Remove (this is for debuging purposes during development only)
+  // LOG(INFO) << "FV0 Geometry::getCurrentCellId():";
+  // LOG(INFO) << "Ring id  :   " << ring;
+  // LOG(INFO) << "Ring name:   " << fMC->CurrentVolOffName(0);
+  // LOG(INFO) << "Sector id:   " << sector;
+  // LOG(INFO) << "Sector name: " << fMC->CurrentVolOffName(1);
+  // LOG(INFO) << "Cell id :    " << sector + 8 * (ring - 1);
+  // LOG(INFO) << "";
+
   return sector + 8 * (ring - 1);
 }
 
@@ -327,8 +336,10 @@ void Geometry::initializeCells(std::string cellType, float zThickness, TGeoMediu
 
     // Cell volume
     TGeoVolume* aCell = new TGeoVolume(aCellName.str().c_str(), aCellCs, medium);
-    mvSensitiveVolumeNames.push_back(aCell->GetName());
-
+    if (cellType == sScintName) {
+      mvSensitiveVolumeNames.push_back(aCell->GetName());
+    }
+    
     // "b"-type cells
     // 
     // Initial placement:
@@ -439,7 +450,9 @@ void Geometry::initializeCells(std::string cellType, float zThickness, TGeoMediu
 
     // Cell volume
     TGeoVolume* bCell = new TGeoVolume(bCellName.str().c_str(), bCellCs, medium);
-    mvSensitiveVolumeNames.push_back(bCell->GetName());
+    if (cellType == sScintName) {
+      mvSensitiveVolumeNames.push_back(bCell->GetName());
+    }
   }
 }
 
@@ -827,7 +840,7 @@ TGeoVolumeAssembly* Geometry::buildSector(std::string cellType, int iSector)
       LOG(WARNING) << "FV0: Couldn't find cell volume " << ssCellName.str();
     } else {
       LOG(DEBUG) << "FV0 Geometry::buildSector(): adding cell volume " << ssCellName.str();
-      sector->AddNode(cell, 1);
+      sector->AddNode(cell, i + 1);
     }
   }
 
