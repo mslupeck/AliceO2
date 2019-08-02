@@ -65,7 +65,6 @@ void Geometry::initializeGeometry()
   if (mGeometryType == eFull) {
     initializeNonSensVols();
   }
-  initializeLuts();
 }
 
 void Geometry::initializeVectors()
@@ -73,6 +72,8 @@ void Geometry::initializeVectors()
   initializeCellRadii();
   initializeSectorTransformations();
   initializeFiberRadii();
+  initializeScrewDimensions();
+  initializeScrewPositions();
 }
 
 void Geometry::initializeCellRadii()
@@ -163,6 +164,57 @@ void Geometry::initializeFiberRadii()
   mRMaxFiber.push_back(mRMaxScint.back());
 }
 
+void Geometry::initializeScrewDimensions()
+{
+  mDzScrews.push_back(6.02);
+  mDzScrews.push_back(13.09);
+  mDzScrews.push_back(23.1);
+  mDzScrews.push_back(28.3);
+  mDzScrews.push_back(5);
+
+  mDrScrews.push_back(0.25);
+  mDrScrews.push_back(0.25);
+  mDrScrews.push_back(0.25);
+  mDrScrews.push_back(0.25);
+  mDrScrews.push_back(0.25);
+}
+
+void Geometry::initializeScrewPositions()
+{
+  LOG(INFO) << "FV0 Geometry::initializeScrewPositions(): Initializing screw positions";
+
+  for (int i = 0; i < 6; i++) {
+
+    float r = 0;
+
+    if (i == 4) {
+      r = (mRAvgRing.at(i) + mRAvgRing.at(i + 1)) / 2;
+    } else if (i == 5) {
+      r = mRAvgRing.at(i);
+    } else {
+      r = mRAvgRing.at(i + 1);
+    }
+    
+    if (i < 2) {
+      for (float phi = 45; phi >= -45; phi -= 45) {
+        mScrewHolePos.push_back(std::vector<float> { cosf(phi * M_PI/180) * r, sinf(phi * M_PI/180) * r });
+      }
+    } else if (i < 4) {
+      for (float phi = 67.5; phi >= -67.5; phi -= 22.5) {
+        mScrewHolePos.push_back(std::vector<float> { cosf(phi * M_PI/180) * r, sinf(phi * M_PI/180) * r });
+      }
+    } else if (i == 4) {
+      for (float phi = 45; phi >= -45; phi -= 45) {
+        mScrewHolePos.push_back(std::vector<float> { cosf(phi * M_PI/180) * r, sinf(phi * M_PI/180) * r });
+      }
+    } else if (i == 5) {
+      for (float phi = 67.5; phi >= -67.5; phi -= 22.5) {
+        mScrewHolePos.push_back(std::vector<float> { cosf(phi * M_PI/180) * r, sinf(phi * M_PI/180) * r });
+      }
+    }
+  }
+}
+
 void Geometry::initializeSensVols()
 {
   initializeScintCells();
@@ -172,6 +224,7 @@ void Geometry::initializeNonSensVols()
 {
   initializePlasticCells();
   initializeFibers();
+  initializeScrews();
   initializeMetalContainer();
 }
 
@@ -183,12 +236,12 @@ void Geometry::initializeCells(std::string cellType, float zThickness, TGeoMediu
 
   LOG(INFO) << "FV0 Geometry::initializeCells(): Initializing " << cellType << " cells";
   
-  float xHoleCut = 0.2;                               // width of extension of hole 1, 2 and 7 in the "a" cell
+  float xHoleCut = sDxCellHoleExt;                               // width of extension of hole 1, 2 and 7 in the "a" cell
   float dxHole = sDrSeparationScint + xHoleCut;       // x-placement of holes 1, 2 and 7 in the "a" cell
 
   // Sector separation gap shape
   std::string secSepShapeName = "FV0_" + cellType + "SectorSeparation";
-  new TGeoBBox(secSepShapeName.c_str(), mRMaxScint.back() + sEpsilon, sDxAluCover + sDrSeparationScint, zThickness / 2);
+  new TGeoBBox(secSepShapeName.c_str(), mRMaxScint.back() + sEpsilon, sDrSeparationScint, zThickness / 2);
 
   // Sector separation gap rotations
   std::string secSepRot45Name = "FV0_" + cellType + "SecSepRot45";
@@ -531,6 +584,27 @@ void Geometry::initializeFibers()
   }
 }
 
+void Geometry::initializeScrews()
+{
+  LOG(INFO) << "FV0 Geometry::initializeScrews(): Initializing screws";
+  if (mDzScrews.size() != mDrScrews.size()) {
+    LOG(WARNING) << "FV0 Geometry::initilizeScrews(): Screw properties not set up correctly! Screws won't be created.";
+    return;
+  }
+
+  TGeoMedium* medium = gGeoManager->GetMedium("V0_Aluminium$");
+
+  for (int i = 0; i < mDzScrews.size(); i++) {
+    std::stringstream screwName;
+
+    screwName << "FV0" << sScrewName << i + 1;
+    std::string screwShapeName = screwName.str() + "Shape";
+
+    TGeoTube* screwShape = new TGeoTube(screwShapeName.c_str(), 0, mDrScrews.at(i), mDzScrews.at(i) / 2);
+    new TGeoVolume(screwName.str().c_str(), screwShape, medium);
+  }
+}
+
 void Geometry::initializeMetalContainer()
 {
   // The metal container is constructed starting from the backplate. The backplate is positioned first, relative to
@@ -711,13 +785,8 @@ void Geometry::initializeMetalContainer()
 
   // Volume
   std::string aluContName = "FV0" + sContainerName;
-  TGeoMedium* kMed = gGeoManager->GetMedium("V0_Aluminium$");
-  new TGeoVolume(aluContName.c_str(), aluContCS, kMed);
-}
-
-void Geometry::initializeLuts()
-{
-  // TODO: initialize sth
+  TGeoMedium* medium = gGeoManager->GetMedium("V0_Aluminium$");
+  new TGeoVolume(aluContName.c_str(), aluContCS, medium);
 }
 
 void Geometry::buildGeometry()
@@ -750,6 +819,7 @@ void Geometry::assembleNonSensVols(TGeoVolumeAssembly* vFV0)
 {
   assemblePlasticSectors(vFV0);
   assembleFibers(vFV0);
+  assembleScrews(vFV0);
   assembleMetalContainer(vFV0);
 }
 
@@ -781,6 +851,48 @@ void Geometry::assembleFibers(TGeoVolumeAssembly* vFV0)
 
   vFV0->AddNode(fibers, 1);
   vFV0->AddNode(fibers, 2, reflection);
+}
+
+void Geometry::assembleScrews(TGeoVolume* vFV0)
+{
+  LOG(INFO) << "FV0 Geometry::assembleScrews(): Assembling screws";
+
+  TGeoVolumeAssembly* screws = new TGeoVolumeAssembly("FV0SCREWS");
+  TGeoVolumeAssembly* screwsLeft = new TGeoVolumeAssembly("FV0SCREWSLEFT");
+  TGeoVolumeAssembly* screwsRight = new TGeoVolumeAssembly("FV0SCREWSRIGHT");
+
+  // TGeoVolume* screw = nullptr;
+  int iScrew = 0;
+
+  for (int i = 0; i < mScrewHolePos.size(); i++) {
+    if (i < 3) {
+      iScrew = 1;
+    } else if (i < 13) {
+      iScrew = 2;
+    } else if (i < 20) {
+      iScrew = 3;
+    } else if (i < 23) {
+      iScrew = 4;
+    } else {
+      iScrew = 5;
+    }
+
+    TGeoVolume* screw = gGeoManager->GetVolume(("FV0" + sScrewName + std::to_string(iScrew)).c_str());
+
+    if (!screw) {
+      LOG(INFO) << "FV0 Geometry::assembleScrews(): Screw not found";
+    } else {
+
+      float zScrew = sZScint - sDzScint / 2 + mDzScrews.at(iScrew - 1) / 2;
+
+      screwsRight->AddNode(screw, i, new TGeoTranslation(mScrewHolePos.at(i).at(0), mScrewHolePos.at(i).at(1), zScrew));
+      screwsLeft->AddNode(screw, i, new TGeoTranslation(-mScrewHolePos.at(i).at(0), mScrewHolePos.at(i).at(1), zScrew));
+    }
+  }
+
+  screws->AddNode(screwsLeft, 1, new TGeoTranslation(-sDxAluCover, 0, 0));
+  screws->AddNode(screwsRight, 2, new TGeoTranslation(sDxAluCover, 0, 0));
+  vFV0->AddNode(screws, 1);
 }
 
 void Geometry::assembleMetalContainer(TGeoVolumeAssembly* volV0)
@@ -815,8 +927,8 @@ TGeoVolumeAssembly* Geometry::buildSectorAssembly(std::string cellName)
     right->AddNode(sector, iSector + 1, mSectorTrans.at(iSector));
   }
 
-  assembly->AddNode(left, 1);
-  assembly->AddNode(right, 1);
+  assembly->AddNode(left, 1, new TGeoTranslation(-sDxAluCover, 0, 0));
+  assembly->AddNode(right, 2, new TGeoTranslation(sDxAluCover, 0, 0));
   
   return assembly;
 }

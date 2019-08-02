@@ -56,7 +56,11 @@ class Geometry
   static constexpr float sYGlobal = 0;                      // global y-position of the geometrical center of the sensitive parts of the detector
   static constexpr float sZGlobal = 320;                    // global z-position of the geometrical center of the sensitive parts of the detector
   static constexpr float sGlobalPhiRotation = 0;            // global phi rotation (to enable making two detector halves, possible to separate vertically)
+  static constexpr float sDxHalvesSeparation = 0;           // separation between the left and right side of the detector
+  static constexpr float sDyHalvesSeparation = 0;           // y-position of the right detector part relative to the left
+  static constexpr float sDzHalvesSeparation = 0;           // z-position of the right detector part relative to the left
   static constexpr float sDrSeparationScint = 0.03 + 0.04;  // paint thickness + half of separation gap
+  static constexpr float sDxCellHoleExt = 0.2;              // extension of the holes closest to the vertical aluminum cover
   static constexpr float sDzScint = 4;                      // thickness of scintillator
   static constexpr float sDzPlast = 1;                      // thickness of fiber plastic
   static constexpr float sDySeparationScint = sDrSeparationScint;
@@ -124,6 +128,12 @@ class Geometry
   /// Initialize fiber volume radii.
   void initializeFiberRadii();
 
+  /// Initialize the screw dimensions;
+  void initializeScrewDimensions();
+
+  /// Initialize the screw positions
+  void initializeScrewPositions();
+
   /// Initialize the sensitive volumes.
   void initializeSensVols();
 
@@ -145,9 +155,11 @@ class Geometry
   /// Initialize volumes equivalent to the fibers.
   void initializeFibers();
 
+  /// Initialize the screw volumes.
+  void initializeScrews();
+
   /// Initialize the metal container volume.
   void initializeMetalContainer();
-  void initializeLuts();
 
   /// Build the geometry.
   void buildGeometry();
@@ -171,6 +183,10 @@ class Geometry
   /// Assemble the fibers.
   /// \param  vFV0  The FIT V0 volume.
   void assembleFibers(TGeoVolumeAssembly* vFV0);
+
+  /// Assemble the screwss.
+  /// \param  vFV0  The FIT V0 volume.
+  void assembleScrews(TGeoVolume* vFV0);
 
   /// Assemble the metal container.
   /// \param  vFV0  The FIT V0 volume.
@@ -202,17 +218,22 @@ class Geometry
   inline static const std::string sPlastSectorName = sPlastName + sSectorName;
   inline static const std::string sPlastCellName = sPlastName + sCellName;
   inline static const std::string sFiberName = "FIBER";
+  inline static const std::string sScrewName = "SCREW";
   inline static const std::string sContainerName = "ALUCONTAINER";
 
   std::vector<std::string> mvSensitiveVolumeNames;
 
-  std::vector<float> mRAvgRing;           // average ring radii (index 0 -> ring 1 min, index 1 -> ring 1 max and ring 2 min, ... index 5 -> ring 5 max)
+  std::vector<float> mRAvgRing;                   // average ring radii (index 0 -> ring 1 min, index 1 -> ring 1 max and ring 2 min, ... index 5 -> ring 5 max)
   // The following radii include separation between scintillator rings
-  std::vector<float> mRMinScint;          // inner radii of a ring (.at(0) -> ring 1, .at(4) -> ring 5)
-  std::vector<float> mRMaxScint;          // outer radii of a ring (.at(0) -> ring 1, .at(4) -> ring 5)
-  std::vector<float> mRMinFiber;          // inner radii of fiber volumes (.at(0) -> fiber 1)
-  std::vector<float> mRMaxFiber;          // outer radii of fiber volumes (.at(0) -> fiber 1)
-  std::vector<TGeoMatrix*> mSectorTrans;  // transformations of sectors (.at(0) -> sector 1)
+  std::vector<float> mRMinScint;                  // inner radii of a ring (.at(0) -> ring 1, .at(4) -> ring 5)
+  std::vector<float> mRMaxScint;                  // outer radii of a ring (.at(0) -> ring 1, .at(4) -> ring 5)
+  std::vector<float> mRMinFiber;                  // inner radii of fiber volumes (.at(0) -> fiber 1)
+  std::vector<float> mRMaxFiber;                  // outer radii of fiber volumes (.at(0) -> fiber 1)
+  std::vector<float> mDzScrews;                   // length of screws
+  std::vector<float> mDrScrews;                   // radius of the screws
+  std::vector<float> mRScrews;                    // radii for the screw locations
+  std::vector<TGeoMatrix*> mSectorTrans;          // transformations of sectors (.at(0) -> sector 1)
+  std::vector<std::vector<float>> mScrewHolePos;  // xy-coordinates of all the screws
 
   int mGeometryType; // same meaning as initType in constructor
 
