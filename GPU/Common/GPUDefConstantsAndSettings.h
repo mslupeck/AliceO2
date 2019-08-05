@@ -32,10 +32,8 @@
 #define GPUCA_TRACKLET_SELECTOR_MIN_HITS(QPT) (CAMath::Abs(QPT) > 10 ? 10 : (CAMath::Abs(QPT) > 5 ? 15 : 29)) // Minimum hits should depend on Pt, low Pt tracks can have few hits. 29 Hits default, 15 for < 200 mev, 10 for < 100 mev
 
 #define GPUCA_GLOBAL_TRACKING_RANGE 45                // Number of rows from the upped/lower limit to search for global track candidates in for
-#define GPUCA_GLOBAL_TRACKING_Y_RANGE_UPPER_LEFT 0.85 // Inner portion of y-range in slice that is not used in searching for global track candidates
-#define GPUCA_GLOBAL_TRACKING_Y_RANGE_LOWER_LEFT 0.85
-#define GPUCA_GLOBAL_TRACKING_Y_RANGE_UPPER_RIGHT 0.85
-#define GPUCA_GLOBAL_TRACKING_Y_RANGE_LOWER_RIGHT 0.85
+#define GPUCA_GLOBAL_TRACKING_Y_RANGE_UPPER 0.85      // Inner portion of y-range in slice that is not used in searching for global track candidates
+#define GPUCA_GLOBAL_TRACKING_Y_RANGE_LOWER 0.85
 #define GPUCA_GLOBAL_TRACKING_MIN_ROWS 10 // Min num of rows an additional global track must span over
 #define GPUCA_GLOBAL_TRACKING_MIN_HITS 8  // Min num of hits for an additional global track
 
@@ -76,12 +74,6 @@
 
 //#define GPUCA_MERGER_BY_MC_LABEL
 #define GPUCA_REPRODUCIBLE_CLUSTER_SORTING
-
-#ifdef GPUCA_GPUCODE
-#define GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP 6
-#else
-#define GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP GPUCA_MAXN
-#endif // GPUCA_GPUCODE
 
 //#define GPUCA_FULL_CLUSTERDATA						//Store all cluster information in the cluster data, also those not needed for tracking.
 //#define GPUCA_TPC_RAW_PROPAGATE_PAD_ROW_TIME							//Propagate Pad, Row, Time cluster information to GM

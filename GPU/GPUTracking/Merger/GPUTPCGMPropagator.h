@@ -26,10 +26,6 @@ namespace base
 {
 struct MatBudget;
 class MatLayerCylSet;
-#ifndef HAVE_O2HEADERS
-struct MatBudget {
-};
-#endif
 } // namespace base
 } // namespace o2
 
@@ -73,6 +69,7 @@ class GPUTPCGMPropagator
   GPUd() void SetFitInProjections(bool Flag) { mFitInProjections = Flag; }
   GPUd() void SetToyMCEventsFlag(bool Flag) { mToyMCEvents = Flag; }
   GPUd() void SetSpecialErrors(bool Flag) { mSpecialErrors = Flag; }
+  GPUd() void SetMatLUT(const o2::base::MatLayerCylSet* lut) { mMatLUT = lut; }
 
   GPUd() void SetMaxSinPhi(float maxSinPhi) { mMaxSinPhi = maxSinPhi; }
 

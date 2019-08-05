@@ -28,7 +28,6 @@
 #include "GPUTRDTrack.h"
 #include "GPUTRDTracker.h"
 #include "AliHLTTPCRawCluster.h"
-#include "ClusterNativeAccessExt.h"
 #include "GPUTRDTrackletLabels.h"
 #include "GPUMemoryResource.h"
 #include "GPUConstantMem.h"
@@ -70,7 +69,7 @@ int GPUReconstructionCPUBackend::runKernelBackend(const krnlExec& x, const krnlR
 
 void GPUReconstructionCPU::TransferMemoryInternal(GPUMemoryResource* res, int stream, deviceEvent* ev, deviceEvent* evList, int nEvents, bool toGPU, const void* src, void* dst) {}
 void GPUReconstructionCPU::GPUMemCpy(void* dst, const void* src, size_t size, int stream, bool toGPU, deviceEvent* ev, deviceEvent* evList, int nEvents) {}
-void GPUReconstructionCPU::GPUMemCpyAlways(void* dst, const void* src, size_t size, int stream, bool toGPU, deviceEvent* ev, deviceEvent* evList, int nEvents) { memcpy(dst, src, size); }
+void GPUReconstructionCPU::GPUMemCpyAlways(bool onGpu, void* dst, const void* src, size_t size, int stream, bool toGPU, deviceEvent* ev, deviceEvent* evList, int nEvents) { memcpy(dst, src, size); }
 void GPUReconstructionCPU::WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream, deviceEvent* ev) {}
 int GPUReconstructionCPU::GPUDebug(const char* state, int stream) { return 0; }
 void GPUReconstructionCPU::TransferMemoryResourcesHelper(GPUProcessor* proc, int stream, bool all, bool toGPU)
@@ -114,8 +113,10 @@ int GPUReconstructionCPU::GetThread()
 int GPUReconstructionCPU::InitDevice()
 {
   if (mDeviceProcessingSettings.memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_GLOBAL) {
-    mHostMemoryPermanent = mHostMemoryBase = operator new(GPUCA_HOST_MEMORY_SIZE);
-    mHostMemorySize = GPUCA_HOST_MEMORY_SIZE;
+    if (mDeviceMemorySize > mHostMemorySize) {
+      mHostMemorySize = mDeviceMemorySize;
+    }
+    mHostMemoryPermanent = mHostMemoryBase = operator new(mHostMemorySize);
     ClearAllocatedMemory();
   }
   SetThreadCounts();
@@ -158,15 +159,9 @@ int GPUReconstructionCPU::RunChains()
   }
 
   for (unsigned int i = 0; i < mChains.size(); i++) {
-    if (mChains[i]->RunChain()) {
-      return 1;
-    }
-  }
-
-  if (GetDeviceProcessingSettings().debugLevel >= 1) {
-    if (GetDeviceProcessingSettings().memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_GLOBAL) {
-      printf("Memory Allocation: Host %'lld / %'lld, Device %'lld / %'lld, %d chunks\n", (long long int)((char*)mHostMemoryPool - (char*)mHostMemoryBase), (long long int)mHostMemorySize, (long long int)((char*)mDeviceMemoryPool - (char*)mDeviceMemoryBase),
-             (long long int)mDeviceMemorySize, (int)mMemoryResources.size());
+    int retVal = mChains[i]->RunChain();
+    if (retVal) {
+      return retVal;
     }
   }
 

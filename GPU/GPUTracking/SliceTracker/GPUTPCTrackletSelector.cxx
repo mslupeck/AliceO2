@@ -76,7 +76,9 @@ GPUd() void GPUTPCTrackletSelector::Thread<0>(int nBlocks, int nThreads, int iBl
             s.fHits[iThread][nHits].Set(irow, ih);
           } else
 #endif // GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE != 0
+          {
             trackHits[nHits - GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE].Set(irow, ih);
+          }
           nHits++;
           if (!own) {
             nShared++;
@@ -87,17 +89,18 @@ GPUd() void GPUTPCTrackletSelector::Thread<0>(int nBlocks, int nThreads, int iBl
       if (gap > kMaxRowGap || irow == lastRow) { // store
         if (nHits >= minHits) {
           unsigned int itrout = CAMath::AtomicAdd(tracker.NTracks(), 1);
-#ifdef GPUCA_GPUCODE
-          if (itrout >= GPUCA_MAX_TRACKS)
-#else
-          if (itrout >= tracker.CommonMemory()->nTracklets * 2 + 50)
-#endif // GPUCA_GPUCODE
-          {
-            tracker.GPUParameters()->gpuError = GPUCA_ERROR_TRACK_OVERFLOW;
+          if (itrout + 1 >= tracker.NMaxTracks()) {
+            tracker.CommonMemory()->kernelError = GPUCA_ERROR_TRACK_OVERFLOW;
             CAMath::AtomicExch(tracker.NTracks(), 0);
             return;
           }
           unsigned int nFirstTrackHit = CAMath::AtomicAdd(tracker.NTrackHits(), nHits);
+          if ((nFirstTrackHit + nHits) >= tracker.NMaxTrackHits()) {
+            tracker.CommonMemory()->kernelError = GPUCA_ERROR_TRACK_HIT_OVERFLOW;
+            CAMath::AtomicExch(tracker.NTrackHits(), tracker.NMaxTrackHits());
+            CAMath::AtomicExch(tracker.NTracks(), 0);
+            return;
+          }
           tracker.Tracks()[itrout].SetAlive(1);
           tracker.Tracks()[itrout].SetLocalTrackId(itrout);
           tracker.Tracks()[itrout].SetParam(tracklet.Param());
@@ -109,8 +112,9 @@ GPUd() void GPUTPCTrackletSelector::Thread<0>(int nBlocks, int nThreads, int iBl
               tracker.TrackHits()[nFirstTrackHit + jh] = s.fHits[iThread][jh];
             } else
 #endif // GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE != 0
-
+            {
               tracker.TrackHits()[nFirstTrackHit + jh] = trackHits[jh - GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE];
+            }
           }
         }
         nHits = 0;

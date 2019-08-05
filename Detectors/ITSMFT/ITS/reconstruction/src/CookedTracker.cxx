@@ -120,7 +120,7 @@ Label CookedTracker::cookLabel(TrackITSExt& t, Float_t wrong) const
 
   if ((1. - Float_t(maxL) / noc) > wrong) {
     // change the track ID to negative
-    lab.set(-lab.getTrackID(), lab.getEventID(), lab.getSourceID());
+    lab.setFakeFlag();
   }
   // t.SetFakeRatio((1.- Float_t(maxL)/noc));
   return lab;
@@ -436,10 +436,10 @@ std::vector<TrackITSExt> CookedTracker::trackInThread(Int_t first, Int_t last)
   std::vector<TrackITSExt> seeds;
   seeds.reserve(last - first + 1);
 
-  for (auto& vtx : mVertices) {
-    mX = vtx[0];
-    mY = vtx[1];
-    mZ = vtx[2];
+  for (const auto& vtx : *mVertices) {
+    mX = vtx.getX();
+    mY = vtx.getY();
+    mZ = vtx.getZ();
     makeSeeds(seeds, first, last);
   }
 
@@ -453,19 +453,21 @@ std::vector<TrackITSExt> CookedTracker::trackInThread(Int_t first, Int_t last)
 }
 
 void CookedTracker::process(const std::vector<Cluster>& clusters, std::vector<TrackITS>& tracks,
-                            std::vector<int>& clusIdx, std::vector<o2::itsmft::ROFRecord>& rofs)
+                            std::vector<int>& clusIdx, o2::itsmft::ROFRecord& rof)
 {
   //--------------------------------------------------------------------
   // This is the main tracking function
   //--------------------------------------------------------------------
-  static int entry = 0;
-  LOG(INFO) << "CookedTracker::process() entry " << entry++ << ", number of threads: " << mNumOfThreads;
+  if (mVertices == nullptr || mVertices->empty()) {
+    LOG(INFO) << "Not a single primary vertex provided. Skipping...\n";
+    return;
+  }
+  LOG(INFO) << "\n CookedTracker::process(), number of threads: " << mNumOfThreads << '\n';
 
   auto start = std::chrono::system_clock::now();
 
   mFirstCluster = &clusters.front();
 
-  for (auto& rof : rofs) {
     auto nClFrame = loadClusters(clusters, rof);
 
     auto end = std::chrono::system_clock::now();
@@ -476,7 +478,7 @@ void CookedTracker::process(const std::vector<Cluster>& clusters, std::vector<Tr
     start = end;
 
     int first = tracks.size();
-    processFrame(tracks, clusIdx);
+    processLoadedClusters(tracks, clusIdx);
     int number = tracks.size() - first;
     rof.getROFEntry().setIndex(first);
     rof.setNROFEntries(number);
@@ -487,10 +489,9 @@ void CookedTracker::process(const std::vector<Cluster>& clusters, std::vector<Tr
     LOG(INFO) << "Processing time/clusters for single frame : " << diff.count() << " / " << nClFrame << " s" << FairLogger::endl;
 
     start = end;
-  }
 }
 
-void CookedTracker::processFrame(std::vector<TrackITS>& tracks, std::vector<int>& clusIdx)
+void CookedTracker::processLoadedClusters(std::vector<TrackITS>& tracks, std::vector<int>& clusIdx)
 {
   //--------------------------------------------------------------------
   // This is the main tracking function for single frame, it is assumed that only clusters
@@ -529,8 +530,8 @@ void CookedTracker::processFrame(std::vector<TrackITS>& tracks, std::vector<int>
   }
 
   if (nSeeds) {
-    LOG(INFO) << "CookedTracker::process(), good_tracks:/seeds: " << ngood << '/' << nSeeds << "-> "
-              << Float_t(ngood) / nSeeds << FairLogger::endl;
+    LOG(INFO) << "CookedTracker::processLoadedClusters(), good_tracks:/seeds: " << ngood << '/' << nSeeds << "-> "
+              << Float_t(ngood) / nSeeds << '\n';
   }
 }
 

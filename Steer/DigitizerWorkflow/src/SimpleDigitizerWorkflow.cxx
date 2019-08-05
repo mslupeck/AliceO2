@@ -35,12 +35,14 @@
 // for TOF
 #include "TOFDigitizerSpec.h"
 #include "TOFDigitWriterSpec.h"
-#include "TOFClusterizerSpec.h"
-#include "TOFClusterWriterSpec.h"
 
 // for FIT
 #include "FITDigitizerSpec.h"
 #include "FITDigitWriterSpec.h"
+
+// for FDD
+#include "FDDDigitizerSpec.h"
+#include "FDDDigitWriterSpec.h"
 
 // for EMCal
 #include "EMCALDigitizerSpec.h"
@@ -402,19 +404,15 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     specs.emplace_back(o2::tof::getTOFDigitizerSpec(fanoutsize++));
     // add TOF digit writer
     specs.emplace_back(o2::tof::getTOFDigitWriterSpec());
-    // add TOF clusterer
-    specs.emplace_back(o2::tof::getTOFClusterizerSpec());
-    // add TOF cluster writer
-    specs.emplace_back(o2::tof::getTOFClusterWriterSpec());
   }
 
-  // the FIT T0 part
-  if (isEnabled(o2::detectors::DetID::T0)) {
-    detList.emplace_back(o2::detectors::DetID::T0);
+  // the FT0 part
+  if (isEnabled(o2::detectors::DetID::FT0)) {
+    detList.emplace_back(o2::detectors::DetID::FT0);
     // connect the FIT digitization
-    specs.emplace_back(o2::fit::getFITT0DigitizerSpec(fanoutsize++));
+    specs.emplace_back(o2::fit::getFT0DigitizerSpec(fanoutsize++));
     // connect the FIT digit writer
-    specs.emplace_back(o2::fit::getT0DigitWriterSpec());
+    specs.emplace_back(o2::fit::getFT0DigitWriterSpec());
   }
 
   // the EMCal part
@@ -469,6 +467,14 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     specs.emplace_back(o2::mid::getMIDDigitizerSpec(fanoutsize++));
     // connect the MID digit writer
     specs.emplace_back(o2::mid::getMIDDigitWriterSpec());
+  }
+  // add FDD
+  if (isEnabled(o2::detectors::DetID::FDD)) {
+    detList.emplace_back(o2::detectors::DetID::FDD);
+    // connect the FDD digitization
+    specs.emplace_back(o2::fdd::getFDDDigitizerSpec(fanoutsize++));
+    // connect the FDD digit writer
+    specs.emplace_back(o2::fdd::getFDDDigitWriterSpec());
   }
 
   // GRP updater: must come after all detectors since requires their list

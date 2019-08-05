@@ -32,7 +32,7 @@ namespace o2
 {
 namespace tpc
 {
-struct ClusterNativeAccessFullTPC;
+struct ClusterNativeAccess;
 struct ClusterNative;
 } // namespace tpc
 } // namespace o2
@@ -82,16 +82,16 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
 
     std::unique_ptr<GPUTPCClusterData[]> clusterData[NSLICES];
     std::unique_ptr<AliHLTTPCRawCluster[]> rawClusters[NSLICES];
-    std::unique_ptr<o2::tpc::ClusterNative[]> clustersNative[NSLICES * GPUCA_ROW_COUNT];
-    std::unique_ptr<GPUTPCSliceOutTrack[]> sliceOutTracks[NSLICES];
-    std::unique_ptr<GPUTPCSliceOutCluster[]> sliceOutClusters[NSLICES];
+    std::unique_ptr<o2::tpc::ClusterNative[]> clustersNative;
+    std::unique_ptr<GPUTPCTrack[]> sliceOutTracks[NSLICES];
+    std::unique_ptr<GPUTPCHitId[]> sliceOutClusters[NSLICES];
     std::unique_ptr<AliHLTTPCClusterMCLabel[]> mcLabelsTPC;
     std::unique_ptr<GPUTPCMCInfo[]> mcInfosTPC;
     std::unique_ptr<GPUTPCGMMergedTrack[]> mergedTracks;
     std::unique_ptr<GPUTPCGMMergedTrackHit[]> mergedTrackHits;
-    std::unique_ptr<GPUTRDTrack[]> trdTracks;
     std::unique_ptr<GPUTRDTrackletWord[]> trdTracklets;
     std::unique_ptr<GPUTRDTrackletLabels[]> trdTrackletsMC;
+    std::unique_ptr<GPUTRDTrack[]> trdTracks;
   } mIOMem;
 
   // Read / Dump / Clear Data
@@ -130,7 +130,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   const TPCFastTransform* GetTPCTransform() const { return mTPCFastTransform; }
   const o2::base::MatLayerCylSet* GetMatLUT() const { return mMatLUT; }
   const GPUTRDGeometry* GetTRDGeometry() const { return (GPUTRDGeometry*)mTRDGeometry; }
-  const ClusterNativeAccessExt* GetClusterNativeAccessExt() const { return mClusterNativeAccess.get(); }
+  const o2::tpc::ClusterNativeAccess* GetClusterNativeAccess() const { return mClusterNativeAccess.get(); }
   void SetTPCFastTransform(std::unique_ptr<TPCFastTransform>&& tpcFastTransform);
   void SetMatLUT(std::unique_ptr<o2::base::MatLayerCylSet>&& lut);
   void SetTRDGeometry(std::unique_ptr<o2::trd::TRDGeometryFlat>&& geo);
@@ -162,7 +162,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
     void* constructor;
   };
 
-  GPUChainTracking(GPUReconstruction* rec);
+  GPUChainTracking(GPUReconstruction* rec, unsigned int maxTPCHits = GPUCA_MAX_CLUSTERS, unsigned int maxTRDTracklets = GPUCA_MAX_TRD_TRACKLETS);
 
   int ReadEvent(int iSlice, int threadId);
   void WriteOutput(int iSlice, int threadId);
@@ -170,6 +170,10 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
 
   int PrepareProfile();
   int DoProfile();
+  void PrintMemoryRelations();
+  void PrintMemoryStatistics() override;
+
+  bool ValidateSteps();
 
   // Pointers to tracker classes
   GPUTrackingFlatObjects mFlatObjectsShadow; // Host copy of flat objects that will be used on the GPU
@@ -182,19 +186,25 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   std::unique_ptr<GPUTPCClusterStatistics> mCompressionStatistics;
   bool mQAInitialized = false;
 
-  // Ptr to reconstruction detecto objects
-  std::unique_ptr<ClusterNativeAccessExt> mClusterNativeAccess; // Internal memory for clusterNativeAccess
-  std::unique_ptr<TPCFastTransform> mTPCFastTransformU;         // Global TPC fast transformation object
-  const TPCFastTransform* mTPCFastTransform = nullptr;          //
-  std::unique_ptr<o2::base::MatLayerCylSet> mMatLUTU;           // Material Lookup Table
-  const o2::base::MatLayerCylSet* mMatLUT = nullptr;            //
-  std::unique_ptr<o2::trd::TRDGeometryFlat> mTRDGeometryU;      // TRD Geometry
-  const o2::trd::TRDGeometryFlat* mTRDGeometry;                 //
+  // Ptr to reconstruction detector objects
+  std::unique_ptr<o2::tpc::ClusterNativeAccess> mClusterNativeAccess; // Internal memory for clusterNativeAccess
+  std::unique_ptr<TPCFastTransform> mTPCFastTransformU;               // Global TPC fast transformation object
+  const TPCFastTransform* mTPCFastTransform = nullptr;                //
+  std::unique_ptr<o2::base::MatLayerCylSet> mMatLUTU;                 // Material Lookup Table
+  const o2::base::MatLayerCylSet* mMatLUT = nullptr;                  //
+  std::unique_ptr<o2::trd::TRDGeometryFlat> mTRDGeometryU;            // TRD Geometry
+  const o2::trd::TRDGeometryFlat* mTRDGeometry = nullptr;             //
 
+  // Upper bounds for memory allocation
+  unsigned int mMaxTPCHits;
+  unsigned int mMaxTRDTracklets;
+
+  // Timers and debug
   HighResTimer timerTPCtracking[NSLICES][10];
-  eventStruct* mEvents = nullptr;
   std::ofstream mDebugFile;
 
+  // Synchronization and Locks
+  eventStruct* mEvents = nullptr;
 #ifdef __ROOT__ // ROOT5 BUG: cint doesn't do volatile
 #define volatile
 #endif

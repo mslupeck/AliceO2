@@ -25,6 +25,7 @@
 #include "MathUtils/Cartesian3D.h"
 #include "DataFormatsITS/TrackITS.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
+#include "ReconstructionDataFormats/Vertex.h"
 
 namespace o2
 {
@@ -45,6 +46,7 @@ namespace its
 class CookedTracker
 {
   using Cluster = o2::itsmft::Cluster;
+  using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
 
  public:
   CookedTracker(Int_t nThreads = 1);
@@ -52,7 +54,10 @@ class CookedTracker
   CookedTracker& operator=(const CookedTracker& tr) = delete;
   ~CookedTracker() = default;
 
-  void setVertices(std::vector<std::array<Double_t, 3>>& vertices) { mVertices = std::move(vertices); }
+  void setVertices(const std::vector<Vertex>& vertices)
+  {
+    mVertices = &vertices;
+  }
 
   Double_t getX() const { return mX; }
   Double_t getY() const { return mY; }
@@ -69,9 +74,7 @@ class CookedTracker
   Int_t getNumberOfThreads() const { return mNumOfThreads; }
 
   // These functions must be implemented
-  void process(const std::vector<Cluster>& clusters, std::vector<TrackITS>& tracks, std::vector<int>& clusIdx,
-               std::vector<o2::itsmft::ROFRecord>& rofs);
-  void processFrame(std::vector<TrackITS>& tracks, std::vector<int>& clusIdx);
+  void process(const std::vector<Cluster>& clusters, std::vector<TrackITS>& tracks, std::vector<int>& clusIdx, o2::itsmft::ROFRecord& rof);
   const Cluster* getCluster(Int_t index) const;
 
   void setGeometry(o2::its::GeometryTGeo* geom);
@@ -94,6 +97,7 @@ class CookedTracker
   void addOutputTrack(const TrackITSExt& t, std::vector<TrackITS>& tracks, std::vector<int>& clusIdx);
   int loadClusters(const std::vector<Cluster>& clusters, const o2::itsmft::ROFRecord& rof);
   void unloadClusters();
+  void processLoadedClusters(std::vector<TrackITS>& tracks, std::vector<int>& clusIdx);
 
   std::vector<TrackITSExt> trackInThread(Int_t first, Int_t last);
   void makeSeeds(std::vector<TrackITSExt>& seeds, Int_t first, Int_t last);
@@ -115,7 +119,7 @@ class CookedTracker
 
   Double_t mBz; ///< Effective Z-component of the magnetic field (kG)
 
-  std::vector<std::array<Double_t, 3>> mVertices;
+  const std::vector<Vertex>* mVertices = nullptr;
   Double_t mX = 0.; ///< X-coordinate of the primary vertex
   Double_t mY = 0.; ///< Y-coordinate of the primary vertex
   Double_t mZ = 0.; ///< Z-coordinate of the primary vertex

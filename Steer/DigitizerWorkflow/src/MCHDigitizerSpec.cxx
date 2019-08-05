@@ -120,6 +120,7 @@ class MCHDPLDigitizerTask
           LOG(DEBUG) << "ADC " << d.getADC();
           LOG(DEBUG) << "PAD " << d.getPadID();
           LOG(DEBUG) << "TIME " << d.getTimeStamp();
+          LOG(DEBUG) << "DetID " << d.getDetID();
         }
         std::copy(digits.begin(), digits.end(), std::back_inserter(digitsAccum));
         labelAccum.mergeAtBack(labels);
@@ -128,6 +129,7 @@ class MCHDPLDigitizerTask
         LOG(DEBUG) << "Have " << digits.size() << " digits ";
       }
     }
+    mDigitizer.mergeDigits(digitsAccum, labelAccum);
 
     LOG(DEBUG) << "Have " << labelAccum.getNElements() << " MCH labels "; //does not work out!
     pc.outputs().snapshot(Output{ "MCH", "DIGITS", 0, Lifetime::Timeframe }, digitsAccum);

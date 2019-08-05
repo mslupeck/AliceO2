@@ -44,6 +44,7 @@ class GPUChain
   virtual int Finalize() = 0;
   virtual int RunChain() = 0;
   virtual void MemorySize(size_t& gpuMem, size_t& pageLockedHostMem) = 0;
+  virtual void PrintMemoryStatistics(){};
 
   constexpr static int NSLICES = GPUReconstruction::NSLICES;
 
@@ -59,6 +60,8 @@ class GPUChain
 
   GPUReconstruction::RecoStepField GetRecoSteps() const { return mRec->GetRecoSteps(); }
   GPUReconstruction::RecoStepField GetRecoStepsGPU() const { return mRec->GetRecoStepsGPU(); }
+  GPUReconstruction::InOutTypeField GetRecoStepsInputs() const { return mRec->GetRecoStepsInputs(); }
+  GPUReconstruction::InOutTypeField GetRecoStepsOutputs() const { return mRec->GetRecoStepsOutputs(); }
 
  protected:
   GPUReconstructionCPU* mRec;
@@ -77,8 +80,7 @@ class GPUChain
   void SynchronizeEvents(deviceEvent* evList, int nEvents = 1) { mRec->SynchronizeEvents(evList, nEvents); }
   bool IsEventDone(deviceEvent* evList, int nEvents = 1) { return mRec->IsEventDone(evList, nEvents); }
   void RecordMarker(deviceEvent* ev, int stream) { mRec->RecordMarker(ev, stream); }
-  void ActivateThreadContext() { mRec->ActivateThreadContext(); }
-  void ReleaseThreadContext() { mRec->ReleaseThreadContext(); }
+  virtual std::unique_ptr<GPUReconstruction::GPUThreadContext> GetThreadContext() { return mRec->GetThreadContext(); }
   void SynchronizeGPU() { mRec->SynchronizeGPU(); }
   void ReleaseEvent(deviceEvent* ev) { mRec->ReleaseEvent(ev); }
   template <class T>

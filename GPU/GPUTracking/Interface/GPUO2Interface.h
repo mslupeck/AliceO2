@@ -28,18 +28,13 @@
 #include <memory>
 #include "GPUCommonDef.h"
 #include "GPUDataTypes.h"
-namespace o2
+namespace o2::tpc
 {
-namespace tpc
-{
-struct ClusterNativeAccessFullTPC;
+struct ClusterNativeAccess;
 struct ClusterNative;
-} // namespace tpc
-} // namespace o2
+} // namespace o2::tpc
 
-namespace o2
-{
-namespace gpu
+namespace o2::gpu
 {
 class GPUReconstruction;
 class GPUChainTracking;
@@ -56,6 +51,7 @@ class GPUTPCO2Interface
   void Deinitialize();
 
   int RunTracking(GPUTrackingInOutPointers* data);
+  void Clear(bool clearOutputs);
 
   bool GetParamContinuous() { return (mContinuous); }
   void GetClusterErrors2(int row, float z, float sinPhi, float DzDs, float& ErrY2, float& ErrZ2) const;
@@ -72,7 +68,6 @@ class GPUTPCO2Interface
   GPUChainTracking* mChain = nullptr;
   std::unique_ptr<GPUO2InterfaceConfiguration> mConfig;
 };
-} // namespace gpu
-} // namespace o2
+} // namespace o2::gpu
 
 #endif
