@@ -511,13 +511,13 @@ void Geometry::initializeCells(std::string cellType, float zThickness, TGeoMediu
 
 void Geometry::initializeScintCells()
 {
-  TGeoMedium* medium = gGeoManager->GetMedium("V0_Scintillator$");
+  TGeoMedium* medium = gGeoManager->GetMedium("FV0_Scintillator$");
   initializeCells(sScintName, sDzScint, medium);
 }
 
 void Geometry::initializePlasticCells()
 {
-  TGeoMedium* medium = gGeoManager->GetMedium("V0_Plastic$");
+  TGeoMedium* medium = gGeoManager->GetMedium("FV0_Plastic$");
   initializeCells(sPlastName, sDzPlast, medium);
 }
 
@@ -528,9 +528,9 @@ void Geometry::initializeFibers()
   int numberOfFiberVols = mRMinFiber.size();
   float dzFibers = sDzAlu - sDzAluBack - sDzAluFront - sDzScint - sDzPlast - 2 * sEpsilon;  // depth of the fiber volumes
 
-  TGeoMedium* medFiberInner = gGeoManager->GetMedium("V0_FiberInner$");
-  TGeoMedium* medFiberMiddle = gGeoManager->GetMedium("V0_FiberMiddle$");
-  TGeoMedium* medFiberOuter = gGeoManager->GetMedium("V0_FiberOuter$");
+  TGeoMedium* medFiberInner = gGeoManager->GetMedium("FV0_FiberInner$");
+  TGeoMedium* medFiberMiddle = gGeoManager->GetMedium("FV0_FiberMiddle$");
+  TGeoMedium* medFiberOuter = gGeoManager->GetMedium("FV0_FiberOuter$");
   TGeoMedium* medFiber[] = { medFiberInner, medFiberMiddle, medFiberOuter };
 
   std::string fiberName = "FV0_Fibers";   // No volume with this name
@@ -592,7 +592,7 @@ void Geometry::initializeScrews()
     return;
   }
 
-  TGeoMedium* medium = gGeoManager->GetMedium("V0_Aluminium$");
+  TGeoMedium* medium = gGeoManager->GetMedium("FV0_Aluminium$");
 
   for (int i = 0; i < mDzScrews.size(); i++) {
     std::stringstream screwName;
@@ -785,7 +785,7 @@ void Geometry::initializeMetalContainer()
 
   // Volume
   std::string aluContName = "FV0" + sContainerName;
-  TGeoMedium* medium = gGeoManager->GetMedium("V0_Aluminium$");
+  TGeoMedium* medium = gGeoManager->GetMedium("FV0_Aluminium$");
   new TGeoVolume(aluContName.c_str(), aluContCS, medium);
 }
 
