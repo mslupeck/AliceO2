@@ -110,8 +110,10 @@ class Geometry
   static constexpr float sZPlast = sZScint + sDzScint / 2 + sDzPlast / 2;                     // plastic z-position
   static constexpr float sZAluBack = sZScint - sDzScint / 2 - sDzAluBack / 2;                 // aluminium backplate z-position
   static constexpr float sZAluFront = sZAluBack - sDzAluBack / 2 + sDzAlu - sDzAluFront / 2;  // aluminium frontplate z-position
+  static constexpr float sZAluMid = (sZAluBack + sZAluFront) / 2;                             // middle z of aluminum container
   static constexpr float sZFiber = (sZPlast + sZAluFront) / 2;                                // fiber z-position (plastic and frontplate midpoint)
   static constexpr float sZCone = sZAluFront + sDzAluFront / 2 - sDzAluCone / 2;              // aluminium frontplate cone z-position
+  static constexpr float sXShiftScrews = sDxAluCover;                                         // x shift of all screw holes
 
   /// Initialize the geometry.
   void initializeGeometry();
@@ -128,17 +130,21 @@ class Geometry
   /// Initialize fiber volume radii.
   void initializeFiberRadii();
 
-  /// Initialize the screw dimensions;
-  void initializeScrewDimensions();
+  /// Initialize the screw type dimensions;
+  void initializeScrewTypeDimensions();
 
-  /// Initialize the screw positions
-  void initializeScrewPositions();
+  /// Initialize the position and dimension for every screw.
+  void initializeScrewPositionsAndDimensions();
 
   /// Initialize the sensitive volumes.
   void initializeSensVols();
 
   /// Initialize the non-sensitive volumes.
   void initializeNonSensVols();
+
+  /// Initialize composite shape of all screw holes as well as a translation for this. This shape is removed from all
+  /// volumes that the screws are passing through to avoid overlaps.
+  void initializeScrewHoles();
 
   /// Initialize cell volumes with a specified thickness and medium.
   /// \param  cellType  The type of the cells.
@@ -219,6 +225,8 @@ class Geometry
   inline static const std::string sPlastCellName = sPlastName + sCellName;
   inline static const std::string sFiberName = "FIBER";
   inline static const std::string sScrewName = "SCREW";
+  inline static const std::string sScrewHolesCSName = "FV0SCREWHOLES";
+  inline static const std::string sScrewHolesCSTransName = sScrewHolesCSName + "Trans";
   inline static const std::string sContainerName = "ALUCONTAINER";
 
   std::vector<std::string> mvSensitiveVolumeNames;
@@ -229,13 +237,15 @@ class Geometry
   std::vector<float> mRMaxScint;                  // outer radii of a ring (.at(0) -> ring 1, .at(4) -> ring 5)
   std::vector<float> mRMinFiber;                  // inner radii of fiber volumes (.at(0) -> fiber 1)
   std::vector<float> mRMaxFiber;                  // outer radii of fiber volumes (.at(0) -> fiber 1)
-  std::vector<float> mDzScrews;                   // length of screws
-  std::vector<float> mDrScrews;                   // radius of the screws
+  std::vector<float> mDzScrews;                   // length of screws (.at(n) -> length of screw no. n)
+  std::vector<float> mDzScrewTypes;               // the different length of the screws
+  std::vector<float> mDrScrews;                   // radii of the screws (.at(n) -> radius of screw no. n)
+  std::vector<float> mDrScrewTypes;               // the different radii of the screws
   std::vector<float> mRScrews;                    // radii for the screw locations
   std::vector<TGeoMatrix*> mSectorTrans;          // transformations of sectors (.at(0) -> sector 1)
   std::vector<std::vector<float>> mScrewHolePos;  // xy-coordinates of all the screws
 
-  int mGeometryType; // same meaning as initType in constructor
+  int mGeometryType;                              // same meaning as initType in constructor
 
   ClassDefNV(Geometry, 1);
 };
