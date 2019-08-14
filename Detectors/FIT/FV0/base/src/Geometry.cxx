@@ -658,7 +658,11 @@ void Geometry::initializeScrews()
     return;
   }
 
-  TGeoMedium* medium = gGeoManager->GetMedium("FV0_Aluminium$");
+  TGeoMedium* medium = gGeoManager->GetMedium("FV0_Stainless_Steel$");
+
+  if (!medium) {
+    LOG(WARNING) << "FV0 Geometry::initializeScrews(): Medium not found!";
+  }
 
   for (int i = 0; i < mDzScrewTypes.size(); i++) {
     std::stringstream screwName;

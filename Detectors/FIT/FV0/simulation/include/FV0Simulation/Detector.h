@@ -102,7 +102,8 @@ class Detector : public o2::base::DetImpl<Detector>
     FiberInner,
     FiberMiddle,
     FiberOuter,
-    Aluminium
+    Aluminium,
+    Steel
   }; // media IDs used in createMaterials
 
  private:

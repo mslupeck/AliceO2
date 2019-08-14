@@ -185,6 +185,11 @@ void Detector::createMaterials()
   Float_t zAlu = 13;
   Float_t dAlu = 2.7;
 
+  // Steel (taken from FDD)
+  Float_t asteel[4] = { 55.847, 51.9961, 58.6934, 28.0855 };
+  Float_t zsteel[4] = { 26., 24., 28., 14. };
+  Float_t wsteel[4] = { .715, .18, .1, .005 };
+
   Int_t matId = 0;                  // tmp material id number
   const Int_t unsens = 0, sens = 1; // sensitive or unsensitive medium
 
@@ -231,6 +236,11 @@ void Detector::createMaterials()
   o2::base::Detector::Material(++matId, "Aluminium$", aAlu, zAlu, dAlu, 8.9, 999);
   o2::base::Detector::Medium(Aluminium, "Aluminium$", matId, unsens, fieldType, maxField, tmaxfd, stemax, deemax, epsil,
                              stmin);
+
+  // TODO: verify numbers, taken from FDD
+  o2::base::Detector::Mixture(++matId, "Stainless_Steel$", asteel, zsteel, 7.88, 4, wsteel);
+  o2::base::Detector::Medium(Steel, "Stainless_Steel$", matId, unsens, fieldType, maxField, tmaxfd, stemax, deemax,
+                             epsil, stmin);
 
   LOG(DEBUG) << "FV0 Detector::createMaterials(): matId = " << matId;
 }
