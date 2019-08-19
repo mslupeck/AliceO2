@@ -250,6 +250,12 @@ void Detector::ConstructGeometry()
   LOG(INFO) << "FV0: Constructing geometry";
   createMaterials();
   mGeometry = new Geometry(Geometry::eFull);
+  // mGeometry->enableComponent(Geometry::eScint, false);
+  // mGeometry->enableComponent(Geometry::ePlast, false);
+  // mGeometry->enableComponent(Geometry::eFiber, false);
+  // mGeometry->enableComponent(Geometry::eAluminum, false);
+  // mGeometry->enableComponent(Geometry::eScrew, false);
+  mGeometry->buildGeometry();
 }
 
 void Detector::Register()

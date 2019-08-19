@@ -36,6 +36,15 @@ class Geometry
     eFull
   }; // Geometry type options possible to be initialized
 
+  enum EGeoComponent {
+    eScint,
+    ePlast,
+    eFiber,
+    eScrew,
+    eRod,
+    eAluminum
+  };
+
   ///
   /// Default constructor.
   /// It must be kept public for root persistency purposes,
@@ -81,6 +90,16 @@ class Geometry
   /// Get the names of all the sensitive volumes of the geometry.
   const std::vector<std::string> getSensitiveVolumeNames() { return mvSensitiveVolumeNames; };
 
+  /// Enable or disable a geometry component. To be called before the geometry is built. A disabled component will not
+  /// be added to the geometry. The enabled components are by default specified by the geometry type.
+  /// \param  component The geometry component to be enabled/disabled.
+  /// \param  enable  Boolean setting the enabled state. Default is true.
+  /// \return The enabled state of the geometry component.
+  bool enableComponent(EGeoComponent component, bool enable = true);
+
+  /// Build the geometry.
+  void buildGeometry();
+
  private:
   static constexpr float sDrHoleLarge = 0.415;              // radius of the large scintillator hole
   static constexpr float sDrHoleSmall = 0.265;              // radius of the small scintillator hole
@@ -118,6 +137,9 @@ class Geometry
   /// Initialize the geometry.
   void initializeGeometry();
 
+  /// Initialize maps with geometry information.
+  void initializeMaps();
+
   /// Initialize vectors with geometry information.
   void initializeVectors();
 
@@ -133,8 +155,11 @@ class Geometry
   /// Initialize the screw type dimensions;
   void initializeScrewTypeDimensions();
 
-  /// Initialize the position and dimension for every screw.
-  void initializeScrewPositionsAndDimensions();
+  /// Initialize the rod type dimenstions;
+  void initializeRodTypeDimensions();
+
+  /// Initialize the position and dimension for every screw and rod.
+  void initializeScrewAndRodPositionsAndDimensions();
 
   /// Initialize the sensitive volumes.
   void initializeSensVols();
@@ -142,9 +167,13 @@ class Geometry
   /// Initialize the non-sensitive volumes.
   void initializeNonSensVols();
 
-  /// Initialize composite shape of all screw holes as well as a translation for this. This shape is removed from all
+  /// Initialize a composite shape of all screw holes as well as a translation for this. This shape is removed from all
   /// volumes that the screws are passing through to avoid overlaps.
   void initializeScrewHoles();
+
+  /// Initialize a composite shape of all rod holes as well as a translation for this. This shape is removed from all
+  /// volumes that the rods are passing through to avoid overlaps.
+  void initializeRodHoles();
 
   /// Initialize cell volumes with a specified thickness and medium.
   /// \param  cellType  The type of the cells.
@@ -164,11 +193,11 @@ class Geometry
   /// Initialize the screw volumes.
   void initializeScrews();
 
+  /// Initialize the rod volumes.
+  void initializeRods();
+
   /// Initialize the metal container volume.
   void initializeMetalContainer();
-
-  /// Build the geometry.
-  void buildGeometry();
 
   /// Assemble the sensitive volumes.
   /// \param  vFV0  The FIT V0 volume.
@@ -193,6 +222,10 @@ class Geometry
   /// Assemble the screwss.
   /// \param  vFV0  The FIT V0 volume.
   void assembleScrews(TGeoVolume* vFV0);
+
+  /// Assemble the rods.
+  /// \param  vFV0  The FIT V0 volume.
+  void assembleRods(TGeoVolume* vFV0);
 
   /// Assemble the metal container.
   /// \param  vFV0  The FIT V0 volume.
@@ -227,25 +260,36 @@ class Geometry
   inline static const std::string sScrewName = "SCREW";
   inline static const std::string sScrewHolesCSName = "FV0SCREWHOLES";
   inline static const std::string sScrewHolesCSTransName = sScrewHolesCSName + "Trans";
+  inline static const std::string sRodName = "ROD";
+  inline static const std::string sRodHolesCSName = "FV0RODHOLES";
+  inline static const std::string sRodHolesCSTransName = sRodHolesCSName + "Trans";
   inline static const std::string sContainerName = "ALUCONTAINER";
 
   std::vector<std::string> mvSensitiveVolumeNames;
 
-  std::vector<float> mRAvgRing;                   // average ring radii (index 0 -> ring 1 min, index 1 -> ring 1 max and ring 2 min, ... index 5 -> ring 5 max)
+  std::vector<float> mRAvgRing;                     // average ring radii (index 0 -> ring 1 min, index 1 -> ring 1 max and ring 2 min, ... index 5 -> ring 5 max)
   // The following radii include separation between scintillator rings
-  std::vector<float> mRMinScint;                  // inner radii of a ring (.at(0) -> ring 1, .at(4) -> ring 5)
-  std::vector<float> mRMaxScint;                  // outer radii of a ring (.at(0) -> ring 1, .at(4) -> ring 5)
-  std::vector<float> mRMinFiber;                  // inner radii of fiber volumes (.at(0) -> fiber 1)
-  std::vector<float> mRMaxFiber;                  // outer radii of fiber volumes (.at(0) -> fiber 1)
-  std::vector<float> mDzScrews;                   // length of screws (.at(n) -> length of screw no. n)
-  std::vector<float> mDzScrewTypes;               // the different length of the screws
-  std::vector<float> mDrScrews;                   // radii of the screws (.at(n) -> radius of screw no. n)
-  std::vector<float> mDrScrewTypes;               // the different radii of the screws
-  std::vector<float> mRScrews;                    // radii for the screw locations
-  std::vector<TGeoMatrix*> mSectorTrans;          // transformations of sectors (.at(0) -> sector 1)
-  std::vector<std::vector<float>> mScrewHolePos;  // xy-coordinates of all the screws
+  std::vector<float> mRMinScint;                    // inner radii of a ring (.at(0) -> ring 1, .at(4) -> ring 5)
+  std::vector<float> mRMaxScint;                    // outer radii of a ring (.at(0) -> ring 1, .at(4) -> ring 5)
+  std::vector<float> mRMinFiber;                    // inner radii of fiber volumes (.at(0) -> fiber 1)
+  std::vector<float> mRMaxFiber;                    // outer radii of fiber volumes (.at(0) -> fiber 1)
+  std::vector<float> mDzScrews;                     // length of screws (.at(n) -> length of screw no. n)
+  std::vector<float> mDzScrewTypes;                 // the different length of the screws
+  std::vector<float> mDrScrews;                     // radii of the screws (.at(n) -> radius of screw no. n)
+  std::vector<float> mDrScrewTypes;                 // the different radii of the screws
+  std::vector<float> mRScrews;                      // radii for the screw locations
+  std::vector<float> mDzRods;                       // length of rods (.at(n) -> length of rod no. n)
+  std::vector<float> mDzRodTypes;                   // the different length of the rods
+  std::vector<float> mDrRods;                       // radii of the rods (.at(n) -> radius of rod no. n)
+  std::vector<float> mDrRodTypes;                   // the different radii of the rods
+  std::vector<float> mDxRods;                       // width of the rods (.at(n) -> width of rod no. n)
+  std::vector<float> mDxRodTypes;                   // the different width of the rods
+  std::vector<TGeoMatrix*> mSectorTrans;            // transformations of sectors (.at(0) -> sector 1)
+  std::vector<std::vector<float>> mScrewPos;        // xy-coordinates of all the screws
+  std::vector<std::vector<float>> mRodPos;          // xy-coordinates of all the rods
 
-  int mGeometryType;                              // same meaning as initType in constructor
+  int mGeometryType;                                // same meaning as initType in constructor
+  std::map<EGeoComponent, bool> mEnabledComponents; // map of the enabled state of all geometry components.
 
   ClassDefNV(Geometry, 1);
 };
