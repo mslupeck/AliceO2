@@ -123,6 +123,8 @@ class Geometry
   static constexpr float sDrMinAluInnerShield = 4;          // inner radius of inner aluminium shield
   static constexpr float sDrMaxAluInnerShield = 4.05;       // outer radius of inner aluminium shield
   static constexpr float sDxAluCover = 0.15;                // thickness of aluminium cover
+  static constexpr float sDxAluStandBottom = 38.5;          // width of aluminum stand bottom
+  static constexpr float sDyAluStandBottom = 2;             // thickness of aluminum stand bottom
 
   // Local position constants
   static constexpr float sZScint = 0;                                                         // scintillator z-position

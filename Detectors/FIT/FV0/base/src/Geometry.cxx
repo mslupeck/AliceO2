@@ -984,6 +984,45 @@ void Geometry::initializeMetalContainer()
   std::string coverCSName = coverName + "CS";
   new TGeoCompositeShape(coverCSName.c_str(), coverCSBoolFormula.c_str());
 
+  // Stand bottom
+  float dzStandBottom = sDzAlu - sDzAluBack - sDzAluFront;
+  float dyStandBottomGap = 0.5;                             // This bottom part is not vertically aligned with the "front and backplate stands"
+  float dxStandBottomHole = 9.4;
+  float dzStandBottomHole = 20.4;
+  float dxStandBottomHoleSpacing = 3.1;
+
+  std::string standName = "FV0_StandBottom";
+  std::string standHoleName = standName + "Hole";
+
+  new TGeoBBox(standName.c_str(), sDxAluStandBottom / 2, sDyAluStandBottom / 2, dzStandBottom / 2);
+  new TGeoBBox(standHoleName.c_str(), dxStandBottomHole / 2, sDyAluStandBottom / 2 + sEpsilon, dzStandBottomHole / 2);
+
+  std::string standHoleTrans1Name = standHoleName + "Trans1";
+  std::string standHoleTrans2Name = standHoleName + "Trans2";
+  std::string standHoleTrans3Name = standHoleName + "Trans3";
+  
+  createAndRegisterTrans(standHoleTrans1Name, -dxStandBottomHoleSpacing - dxStandBottomHole, 0, 0);
+  createAndRegisterTrans(standHoleTrans2Name, 0, 0, 0);
+  createAndRegisterTrans(standHoleTrans3Name, dxStandBottomHoleSpacing + dxStandBottomHole, 0, 0);
+
+  // Stand bottom composite shape
+  std::string standCSName = standName + "CS";
+  
+  std::string standBoolFormula = "";
+  standBoolFormula += standName;
+  standBoolFormula += "-" + standHoleName + ":" + standHoleTrans1Name;
+  standBoolFormula += "-" + standHoleName + ":" + standHoleTrans2Name;
+  standBoolFormula += "-" + standHoleName + ":" + standHoleTrans3Name;
+
+  new TGeoCompositeShape(standCSName.c_str(), standBoolFormula.c_str());
+
+  std::string standCSTransName = standCSName + "Trans";
+
+  createAndRegisterTrans(standCSTransName.c_str(),
+                        sDxAluStand - sDxAluStandBottom / 2,
+                        -(sDrMaxAluBack + sDyAluStand) + sDyAluStandBottom / 2 + dyStandBottomGap,
+                        sZAluMid);
+
   // Composite shape
   std::string boolFormula = "";
   boolFormula += backPlateCSName + ":" + backPlateCSTransName;
@@ -992,6 +1031,7 @@ void Geometry::initializeMetalContainer()
   boolFormula += "+" + outerShieldName + ":" + outerShieldTransName;
   boolFormula += "+" + innerShieldCSName + ":" + innerShieldCSTransName;
   boolFormula += "+" + coverCSName;
+  boolFormula += "+" + standCSName + ":" + standCSTransName;
   boolFormula += "-" + sScrewHolesCSName + ":" + sScrewHolesCSTransName;  // Remove holes for screws
 
   std::string aluContCSName = "FV0_AluContCS";
