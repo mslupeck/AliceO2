@@ -351,16 +351,18 @@ void Geometry::initializeScrewHoles()
   std::stringstream holeTransName;
 
   int nHoles = mDrScrews.size();
-  float dz = sDzAlu;
+  int screwType = 0;
 
   for (int i = 0; i < nHoles; i++) {
     holeShapeName.str("");
     holeTransName.str("");
-    holeShapeName << "FV0SCREWHOLE" << i + 1;
-    holeTransName << "FV0SCREWHOLETRANS" << i + 1;
+    holeShapeName << "FV0SCREWHOLE" << i;
+    holeTransName << "FV0SCREWHOLETRANS" << i;
 
-    new TGeoTube(holeShapeName.str().c_str(), 0, mDrScrews.at(i) + sEpsilon, dz / 2 + sEpsilon);
-    createAndRegisterTrans(holeTransName.str(), mScrewPos.at(i).at(0) + sXShiftScrews, mScrewPos.at(i).at(1), 0);
+    screwType = mScrewTypes.at(i);
+
+    createScrewShape(holeShapeName.str(), screwType, sEpsilon, sEpsilon);
+    createAndRegisterTrans(holeTransName.str(), mScrewPos.at(i).at(0) + sXShiftScrews, mScrewPos.at(i).at(1), mScrewPos.at(i).at(2));
 
     if (i != 0) {
       csBoolFormula << "+";
@@ -372,7 +374,6 @@ void Geometry::initializeScrewHoles()
   LOG(INFO) << "FV0 Geometry::initializeScrewHoles(): " << csBoolFormula.str();
 
   new TGeoCompositeShape(sScrewHolesCSName.c_str(), csBoolFormula.str().c_str());
-  createAndRegisterTrans(sScrewHolesCSTransName, 0, 0, sZAluMid);
 
   LOG(INFO) << "FV0 Geometry::initializeScrewHoles(): Screw holes initialized";
 }
@@ -386,9 +387,7 @@ void Geometry::initializeRodHoles()
   std::stringstream rodTransName;
 
   int nRods = mDrRods.size();
-  float dz = sDzAlu;
-
-  LOG(INFO) << nRods;
+  int rodType = 0;
 
   for (int i = 0; i < nRods; i++) {
     rodShapeName.str("");
@@ -396,8 +395,10 @@ void Geometry::initializeRodHoles()
     rodShapeName << "FV0" << sRodName << "HOLE" << i + 1;
     rodTransName << "FV0" << sRodName << "HOLE" << "TRANS" << i + 1;
 
-    new TGeoBBox(rodShapeName.str().c_str(), mDxRods.at(i) / 2, mDrRods.at(i), dz / 2 + sEpsilon);
-    createAndRegisterTrans(rodTransName.str(), mRodPos.at(i).at(0) + sXShiftScrews, mRodPos.at(i).at(1), 0);
+    rodType = mRodTypes.at(i);
+
+    createRodShape(rodShapeName.str(), rodType, sEpsilon, sEpsilon);
+    createAndRegisterTrans(rodTransName.str(), mRodPos.at(i).at(0) + sXShiftScrews, mRodPos.at(i).at(1), mRodPos.at(i).at(2));
 
     if (i != 0) {
       csBoolFormula << "+";
@@ -406,7 +407,6 @@ void Geometry::initializeRodHoles()
   }
 
   new TGeoCompositeShape(sRodHolesCSName.c_str(), csBoolFormula.str().c_str());
-  createAndRegisterTrans(sRodHolesCSTransName, 0, 0, sZAluMid);
 }
 
 void Geometry::initializeCells(std::string cellType, float zThickness, TGeoMedium* medium) {
@@ -752,8 +752,8 @@ void Geometry::initializeFibers()
     }
 
     // Remove holes for screws and rods
-    boolFormula += "-" + sScrewHolesCSName + ":" + sScrewHolesCSTransName;
-    boolFormula += "-" + sRodHolesCSName + ":" + sRodHolesCSTransName;
+    boolFormula += "-" + sScrewHolesCSName;
+    boolFormula += "-" + sRodHolesCSName;
 
     std::string fiberCSName = fiberShapeName.str() + "CS";
     TGeoCompositeShape* fiberCS = new TGeoCompositeShape(fiberCSName.c_str(), boolFormula.c_str());
@@ -1032,7 +1032,7 @@ void Geometry::initializeMetalContainer()
   boolFormula += "+" + innerShieldCSName + ":" + innerShieldCSTransName;
   boolFormula += "+" + coverCSName;
   boolFormula += "+" + standCSName + ":" + standCSTransName;
-  boolFormula += "-" + sScrewHolesCSName + ":" + sScrewHolesCSTransName;  // Remove holes for screws
+  boolFormula += "-" + sScrewHolesCSName;                                 // Remove holes for screws
 
   std::string aluContCSName = "FV0_AluContCS";
   TGeoCompositeShape* aluContCS = new TGeoCompositeShape(aluContCSName.c_str(), boolFormula.c_str());

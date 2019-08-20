@@ -284,10 +284,8 @@ class Geometry
   inline static const std::string sFiberName = "FIBER";
   inline static const std::string sScrewName = "SCREW";
   inline static const std::string sScrewHolesCSName = "FV0SCREWHOLES";
-  inline static const std::string sScrewHolesCSTransName = sScrewHolesCSName + "Trans";
   inline static const std::string sRodName = "ROD";
   inline static const std::string sRodHolesCSName = "FV0RODHOLES";
-  inline static const std::string sRodHolesCSTransName = sRodHolesCSName + "Trans";
   inline static const std::string sContainerName = "ALUCONTAINER";
 
   std::vector<std::string> mvSensitiveVolumeNames;
