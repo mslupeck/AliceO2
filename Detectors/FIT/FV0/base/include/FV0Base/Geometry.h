@@ -152,11 +152,18 @@ class Geometry
   /// Initialize fiber volume radii.
   void initializeFiberRadii();
 
+  /// Initialize the radii of the screw and rod positions.
+  void initializeScrewAndRodRadii();
+
   /// Initialize the screw type dimensions;
   void initializeScrewTypeDimensions();
 
   /// Initialize the rod type dimenstions;
   void initializeRodTypeDimensions();
+
+  void addScrewProperties(int screwType, int iRing, float phi);
+
+  void addRodProperties(int rodType, int iRing);
 
   /// Initialize the position and dimension for every screw and rod.
   void initializeScrewAndRodPositionsAndDimensions();
@@ -241,6 +248,22 @@ class Geometry
   /// \param  iSector   The numbering of the sector.
   /// \return The sector.
   TGeoVolumeAssembly* buildSector(std::string cellType, int iSector);
+  
+  /// Create the shape for a specified screw.
+  /// \param  shapeName   The name of the shape.
+  /// \param  screwType   The number of the screw type.
+  /// \param  vEpsilon    Shrinks or expands the vertical dimensions of the screw shape.
+  /// \param  hEpsilon    Shrinks or expands the horizontal dimensions of the screw shape.
+  /// \return The screw shape.
+  TGeoShape* createScrewShape(std::string shapeName, int screwType, float vEpsilon = 0, float hEpsilon = 0);
+
+  /// Create the shape for a specified rod.
+  /// \param  shapeName The name of the shape.
+  /// \param  rodType   The number of the rod type.
+  /// \param  vEpsilon  Shrinks or expands the vertical dimensions of the rod shape.
+  /// \param  hEpsilon  Shrinks or expands the horzontal dimensions of the rod shape.
+  /// \return The rod shape.
+  TGeoShape* createRodShape(std::string shapeName, int rodType, float vEpsilon = 0, float hEpsilon = 0);
 
   /// Helper function for creating and registering a TGeoTranslation.
   TGeoTranslation* createAndRegisterTrans(std::string name, double dx, double dy, double dz);
@@ -273,6 +296,7 @@ class Geometry
   std::vector<float> mRMaxScint;                    // outer radii of a ring (.at(0) -> ring 1, .at(4) -> ring 5)
   std::vector<float> mRMinFiber;                    // inner radii of fiber volumes (.at(0) -> fiber 1)
   std::vector<float> mRMaxFiber;                    // outer radii of fiber volumes (.at(0) -> fiber 1)
+  std::vector<float> mRScrewAndRod;                 // radii of the screw and rod positions.
 
   std::vector<float> mDzScrews;                     // length of screws (.at(n) -> length of screw no. n)
   std::vector<float> mDzScrewTypes;                 // the different length of the screws
@@ -290,8 +314,8 @@ class Geometry
   std::vector<int> mRodTypes;                       // the type no. of each rod (.at(n) -> type no. of rod no. n)
 
   std::vector<TGeoMatrix*> mSectorTrans;            // transformations of sectors (.at(0) -> sector 1)
-  std::vector<std::vector<float>> mScrewPos;        // xy-coordinates of all the screws
-  std::vector<std::vector<float>> mRodPos;          // xy-coordinates of all the rods
+  std::vector<std::vector<float>> mScrewPos;        // zyx-coordinates of all the screws
+  std::vector<std::vector<float>> mRodPos;          // xyz-coordinates of all the rods
 
   int mGeometryType;                                // same meaning as initType in constructor
   std::map<EGeoComponent, bool> mEnabledComponents; // map of the enabled state of all geometry components.

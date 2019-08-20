@@ -111,6 +111,7 @@ void Geometry::initializeVectors()
   initializeCellRadii();
   initializeSectorTransformations();
   initializeFiberRadii();
+  initializeScrewAndRodRadii();
   initializeScrewTypeDimensions();
   initializeRodTypeDimensions();
   initializeScrewAndRodPositionsAndDimensions();
@@ -204,6 +205,16 @@ void Geometry::initializeFiberRadii()
   mRMaxFiber.push_back(mRMaxScint.back());
 }
 
+void Geometry::initializeScrewAndRodRadii()
+{
+  mRScrewAndRod.push_back(mRAvgRing.at(1));
+  mRScrewAndRod.push_back(mRAvgRing.at(2));
+  mRScrewAndRod.push_back(mRAvgRing.at(3));
+  mRScrewAndRod.push_back(mRAvgRing.at(4));
+  mRScrewAndRod.push_back((mRAvgRing.at(4) + mRAvgRing.at(5)) / 2);
+  mRScrewAndRod.push_back(mRAvgRing.at(5));
+}
+
 void Geometry::initializeScrewTypeDimensions()
 {
   mDzScrewTypes.push_back(6.02);
@@ -237,147 +248,77 @@ void Geometry::initializeRodTypeDimensions()
   mDxRodTypes.push_back(0.344);
 }
 
+void Geometry::addScrewProperties(int screwType, int iRing, float phi) {
+  float r = mRScrewAndRod.at(iRing);
+  mScrewTypes.push_back(screwType);
+  mScrewPos.push_back(std::vector<float> { cosf(phi * M_PI/180) * r,
+                                           sinf(phi * M_PI/180) * r,
+                                           sZScint - sDzScint / 2 + mDzScrewTypes.at(screwType) / 2});
+  mDrScrews.push_back(mDrScrewTypes.at(screwType));
+  mDzScrews.push_back(mDzScrewTypes.at(screwType));
+        
+}
+
+void Geometry::addRodProperties(int rodType, int iRing) {
+  mRodTypes.push_back(rodType);
+  mRodPos.push_back(std::vector<float>{ mDxRodTypes.at(rodType) / 2,
+                                        mRScrewAndRod.at(iRing),
+                                        sZScint - sDzScint / 2 + mDzRodTypes.at(rodType) / 2 });
+  mDrRods.push_back(mDrRodTypes.at(rodType));
+  mDzRods.push_back(mDzRodTypes.at(rodType));
+  mDxRods.push_back(mDxRodTypes.at(rodType));
+
+  mRodTypes.push_back(rodType);
+  mRodPos.push_back(std::vector<float>{ mDxRodTypes.at(rodType) / 2,
+                                        -mRScrewAndRod.at(iRing),
+                                        sZScint - sDzScint / 2 + mDzRodTypes.at(rodType) / 2 });
+  mDrRods.push_back(mDrRodTypes.at(rodType));
+  mDzRods.push_back(mDzRodTypes.at(rodType));
+  mDxRods.push_back(mDxRodTypes.at(rodType));
+}
+
 void Geometry::initializeScrewAndRodPositionsAndDimensions()
 {
   LOG(INFO) << "FV0 Geometry::initializeScrewPositionsAndDimensions(): Initializing screw positions and dimensions";
 
-  for (int iRing = 0; iRing < 6; iRing++) {
-
-    float r = 0;
-
+  for (int iRing = 0; iRing < mRScrewAndRod.size(); iRing++) {
     switch (iRing)
     {
     case 0:
-      r = mRAvgRing.at(iRing + 1);
-
-      mRodPos.push_back(std::vector<float> { mDxRodTypes.at(0) / 2, r });
-      mDrRods.push_back(mDrRodTypes.at(0));
-      mDzRods.push_back(mDzRodTypes.at(0));
-      mDxRods.push_back(mDxRodTypes.at(0));
-      mRodTypes.push_back(0);
-      mRodPos.push_back(std::vector<float> { mDxRodTypes.at(0) / 2, -r });
-      mDrRods.push_back(mDrRodTypes.at(0));
-      mDzRods.push_back(mDzRodTypes.at(0));
-      mDxRods.push_back(mDxRodTypes.at(0));
-      mRodTypes.push_back(0);
-      
+      addRodProperties(0, iRing);
       for (float phi = 45; phi >= -45; phi -= 45) {
-        mScrewPos.push_back(std::vector<float> { cosf(phi * M_PI/180) * r, sinf(phi * M_PI/180) * r });
-        mDrScrews.push_back(mDrScrewTypes.at(0));
-        mDzScrews.push_back(mDzScrewTypes.at(0));
-        mScrewTypes.push_back(0);
+        addScrewProperties(0, iRing, phi);
       }
-      
       break;
     case 1:
-      r = mRAvgRing.at(iRing + 1);
-
-      mRodPos.push_back(std::vector<float> { mDxRodTypes.at(0) / 2, r });
-      mDrRods.push_back(mDrRodTypes.at(0));
-      mDzRods.push_back(mDzRodTypes.at(0));
-      mDxRods.push_back(mDxRodTypes.at(0));
-      mRodTypes.push_back(0);
-      mRodPos.push_back(std::vector<float> { mDxRodTypes.at(0) / 2, -r });
-      mDrRods.push_back(mDrRodTypes.at(0));
-      mDzRods.push_back(mDzRodTypes.at(0));
-      mDxRods.push_back(mDxRodTypes.at(0));
-      mRodTypes.push_back(0);
-      
+      addRodProperties(0, iRing);
       for (float phi = 45; phi >= -45; phi -= 45) {
-        mScrewPos.push_back(std::vector<float> { cosf(phi * M_PI/180) * r, sinf(phi * M_PI/180) * r });
-        mDrScrews.push_back(mDrScrewTypes.at(1));
-        mDzScrews.push_back(mDzScrewTypes.at(1));
-        mScrewTypes.push_back(1);
+        addScrewProperties(1, iRing, phi);
       }
-      
       break;
     case 2:
-      r = mRAvgRing.at(iRing + 1);
-
-      mRodPos.push_back(std::vector<float> { mDxRodTypes.at(1) / 2, r });
-      mDrRods.push_back(mDrRodTypes.at(1));
-      mDzRods.push_back(mDzRodTypes.at(1));
-      mDxRods.push_back(mDxRodTypes.at(1));
-      mRodTypes.push_back(1);
-      mRodPos.push_back(std::vector<float> { mDxRodTypes.at(1) / 2, -r });
-      mDrRods.push_back(mDrRodTypes.at(1));
-      mDzRods.push_back(mDzRodTypes.at(1));
-      mDxRods.push_back(mDxRodTypes.at(1));
-      mRodTypes.push_back(1);
-
+      addRodProperties(1, iRing);
       for (float phi = 67.5; phi >= -67.5; phi -= 22.5) {
-        mScrewPos.push_back(std::vector<float> { cosf(phi * M_PI/180) * r, sinf(phi * M_PI/180) * r });
-        mDrScrews.push_back(mDrScrewTypes.at(1));
-        mDzScrews.push_back(mDzScrewTypes.at(1));
-        mScrewTypes.push_back(1);
+        addScrewProperties(1, iRing, phi);
       }
-
       break;
     case 3:
-      r = mRAvgRing.at(iRing + 1);
-
-      mRodPos.push_back(std::vector<float> { mDxRodTypes.at(2) / 2, r });
-      mDrRods.push_back(mDrRodTypes.at(2));
-      mDzRods.push_back(mDzRodTypes.at(2));
-      mDxRods.push_back(mDxRodTypes.at(2));
-      mRodTypes.push_back(2);
-      mRodPos.push_back(std::vector<float> { mDxRodTypes.at(2) / 2, -r });
-      mDrRods.push_back(mDrRodTypes.at(2));
-      mDzRods.push_back(mDzRodTypes.at(2));
-      mDxRods.push_back(mDxRodTypes.at(2));
-      mRodTypes.push_back(2);
-
+      addRodProperties(2, iRing);
       for (float phi = 67.5; phi >= -67.5; phi -= 22.5) {
-        mScrewPos.push_back(std::vector<float> { cosf(phi * M_PI/180) * r, sinf(phi * M_PI/180) * r });
-        mDrScrews.push_back(mDrScrewTypes.at(2));
-        mDzScrews.push_back(mDzScrewTypes.at(2));
-        mScrewTypes.push_back(2);
+        addScrewProperties(2, iRing, phi);
       }
-
       break;
     case 4:
-      r = (mRAvgRing.at(iRing) + mRAvgRing.at(iRing + 1)) / 2;
-
-      mRodPos.push_back(std::vector<float> { mDxRodTypes.at(3) / 2, r });
-      mDrRods.push_back(mDrRodTypes.at(3));
-      mDzRods.push_back(mDzRodTypes.at(3));
-      mDxRods.push_back(mDxRodTypes.at(3));
-      mRodTypes.push_back(3);
-      mRodPos.push_back(std::vector<float> { mDxRodTypes.at(3) / 2, -r });
-      mDrRods.push_back(mDrRodTypes.at(3));
-      mDzRods.push_back(mDzRodTypes.at(3));
-      mDxRods.push_back(mDxRodTypes.at(3));
-      mRodTypes.push_back(3);
-
+      addRodProperties(3, iRing);
       for (float phi = 45; phi >= -45; phi -= 45) {
-        mScrewPos.push_back(std::vector<float> { cosf(phi * M_PI/180) * r, sinf(phi * M_PI/180) * r });
-        mDrScrews.push_back(mDrScrewTypes.at(3));
-        mDzScrews.push_back(mDzScrewTypes.at(3));
-        mScrewTypes.push_back(3);
+        addScrewProperties(3, iRing, phi);
       }
-
       break;
     case 5:
-      r = mRAvgRing.at(iRing);
-
-      mRodPos.push_back(std::vector<float> { mDxRodTypes.at(3) / 2, r });
-      mDrRods.push_back(mDrRodTypes.at(3));
-      mDzRods.push_back(mDzRodTypes.at(3));
-      mDxRods.push_back(mDxRodTypes.at(3));
-      mRodTypes.push_back(3);
-      mRodPos.push_back(std::vector<float> { mDxRodTypes.at(3) / 2, -r });
-      mDrRods.push_back(mDrRodTypes.at(3));
-      mDzRods.push_back(mDzRodTypes.at(3));
-      mDxRods.push_back(mDxRodTypes.at(3));
-      mRodTypes.push_back(3);
-
+      addRodProperties(3, iRing);
       for (float phi = 67.5; phi >= -67.5; phi -= 22.5) {
-        mScrewPos.push_back(std::vector<float> { cosf(phi * M_PI/180) * r, sinf(phi * M_PI/180) * r });
-        mDrScrews.push_back(mDrScrewTypes.at(4));
-        mDzScrews.push_back(mDzScrewTypes.at(4));
-        mScrewTypes.push_back(4);
+        addScrewProperties(4, iRing, phi);
       }
-
       break;
     default:
       break;
@@ -842,13 +783,13 @@ void Geometry::initializeScrews()
     LOG(WARNING) << "FV0 Geometry::initializeScrews(): Medium not found!";
   }
 
+  std::stringstream screwName;
+
   for (int i = 0; i < mDzScrewTypes.size(); i++) {
-    std::stringstream screwName;
-
+    screwName.str("");
     screwName << "FV0" << sScrewName << i;
-    std::string screwShapeName = screwName.str() + "Shape";
 
-    TGeoTube* screwShape = new TGeoTube(screwShapeName.c_str(), 0, mDrScrewTypes.at(i), mDzScrewTypes.at(i) / 2);
+    TGeoShape* screwShape = createScrewShape(screwName.str() + "Shape", i);
     new TGeoVolume(screwName.str().c_str(), screwShape, medium);
   }
 }
@@ -866,14 +807,13 @@ void Geometry::initializeRods()
     LOG(WARNING) << "FV0 Geometry::initializeRods(): Medium not found!";
   }
 
+  std::stringstream rodName;
+
   for (int i = 0; i < mDzRodTypes.size(); i++) {
-    std::stringstream rodName;
-
+    rodName.str("");
     rodName << "FV0" << sRodName << i;
-    std::string rodShapeName = rodName.str() + "Shape";
 
-    // TGeoTube* rodShape = new TGeoTube(rodShapeName.c_str(), 0, mDrRodTypes.at(i), mDzRodTypes.at(i) / 2);
-    TGeoBBox* rodShape = new TGeoBBox(rodShapeName.c_str(), mDxRodTypes.at(i) / 2 - sEpsilon, mDrRodTypes.at(i) - sEpsilon, mDzRodTypes.at(i) / 2);
+    TGeoShape* rodShape = createRodShape(rodName.str() + "Shape", i, -sEpsilon);
     new TGeoVolume(rodName.str().c_str(), rodShape, medium);
   }
 }
@@ -1129,7 +1069,6 @@ void Geometry::assembleScrews(TGeoVolume* vFV0)
 
   TGeoVolume* screw = nullptr;
   int iScrewType = 0;
-  float zScrew = 0;
 
   // TODO: Add check for screw initialization?
 
@@ -1141,11 +1080,8 @@ void Geometry::assembleScrews(TGeoVolume* vFV0)
     if (!screw) {
       LOG(INFO) << "FV0 Geometry::assembleScrews(): Screw not found";
     } else {
-
-      zScrew = sZScint - sDzScint / 2 + mDzScrewTypes.at(iScrewType) / 2;
-
-      screwsRight->AddNode(screw, i, new TGeoTranslation(mScrewPos.at(i).at(0), mScrewPos.at(i).at(1), zScrew));
-      screwsLeft->AddNode(screw, i, new TGeoTranslation(-mScrewPos.at(i).at(0), mScrewPos.at(i).at(1), zScrew));
+      screwsRight->AddNode(screw, i, new TGeoTranslation(mScrewPos.at(i).at(0), mScrewPos.at(i).at(1), mScrewPos.at(i).at(2)));
+      screwsLeft->AddNode(screw, i, new TGeoTranslation(-mScrewPos.at(i).at(0), mScrewPos.at(i).at(1), mScrewPos.at(i).at(2)));
     }
   }
 
@@ -1164,7 +1100,6 @@ void Geometry::assembleRods(TGeoVolume* vFV0)
 
   TGeoVolume* rod = nullptr;
   int iRodType = 0;
-  float zRod = 0;
 
   // TODO: Add check for rod initialization?
 
@@ -1176,10 +1111,8 @@ void Geometry::assembleRods(TGeoVolume* vFV0)
     if (!rod) {
       LOG(INFO) << "FV0 Geometry::assembleRods(): Rod not found";
     } else {
-      zRod = sZScint - sDzScint / 2 + mDzRodTypes.at(iRodType) / 2;
-
-      rodsRight->AddNode(rod, i, new TGeoTranslation(mRodPos.at(i).at(0), mRodPos.at(i).at(1), zRod));
-      rodsLeft->AddNode(rod, i, new TGeoTranslation(-mRodPos.at(i).at(0), mRodPos.at(i).at(1), zRod));
+      rodsRight->AddNode(rod, i, new TGeoTranslation(mRodPos.at(i).at(0), mRodPos.at(i).at(1), mRodPos.at(i).at(2)));
+      rodsLeft->AddNode(rod, i, new TGeoTranslation(-mRodPos.at(i).at(0), mRodPos.at(i).at(1), mRodPos.at(i).at(2)));
     }
   }
 
@@ -1250,6 +1183,21 @@ TGeoVolumeAssembly* Geometry::buildSector(std::string cellType, int iSector)
   }
 
   return sector;
+}
+
+TGeoShape* Geometry::createScrewShape(std::string shapeName, int screwType, float vEpsilon, float hEpsilon)
+{
+  TGeoTube* screwShape = new TGeoTube(shapeName.c_str(), 0, mDrScrewTypes.at(screwType) + vEpsilon, mDzScrewTypes.at(screwType) / 2 + hEpsilon);
+  return screwShape;
+}
+
+TGeoShape* Geometry::createRodShape(std::string shapeName, int rodType, float vEpsilon, float hEpsilon)
+{
+  TGeoBBox* rodShape = new TGeoBBox(shapeName.c_str(),
+                                    mDxRodTypes.at(rodType) / 2 + vEpsilon,
+                                    mDrRodTypes.at(rodType) + vEpsilon,
+                                    mDzRodTypes.at(rodType) / 2 + hEpsilon);
+  return rodShape;
 }
 
 TGeoTranslation* Geometry::createAndRegisterTrans(std::string name, double dx, double dy, double dz)
