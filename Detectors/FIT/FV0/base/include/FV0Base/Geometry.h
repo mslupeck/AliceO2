@@ -273,17 +273,22 @@ class Geometry
   std::vector<float> mRMaxScint;                    // outer radii of a ring (.at(0) -> ring 1, .at(4) -> ring 5)
   std::vector<float> mRMinFiber;                    // inner radii of fiber volumes (.at(0) -> fiber 1)
   std::vector<float> mRMaxFiber;                    // outer radii of fiber volumes (.at(0) -> fiber 1)
+
   std::vector<float> mDzScrews;                     // length of screws (.at(n) -> length of screw no. n)
   std::vector<float> mDzScrewTypes;                 // the different length of the screws
   std::vector<float> mDrScrews;                     // radii of the screws (.at(n) -> radius of screw no. n)
   std::vector<float> mDrScrewTypes;                 // the different radii of the screws
   std::vector<float> mRScrews;                      // radii for the screw locations
+  std::vector<int> mScrewTypes;                     // the type no. of each screw (.at(n) -> type no. of screw no. n)
+
   std::vector<float> mDzRods;                       // length of rods (.at(n) -> length of rod no. n)
   std::vector<float> mDzRodTypes;                   // the different length of the rods
   std::vector<float> mDrRods;                       // radii of the rods (.at(n) -> radius of rod no. n)
   std::vector<float> mDrRodTypes;                   // the different radii of the rods
   std::vector<float> mDxRods;                       // width of the rods (.at(n) -> width of rod no. n)
   std::vector<float> mDxRodTypes;                   // the different width of the rods
+  std::vector<int> mRodTypes;                       // the type no. of each rod (.at(n) -> type no. of rod no. n)
+
   std::vector<TGeoMatrix*> mSectorTrans;            // transformations of sectors (.at(0) -> sector 1)
   std::vector<std::vector<float>> mScrewPos;        // xy-coordinates of all the screws
   std::vector<std::vector<float>> mRodPos;          // xy-coordinates of all the rods
