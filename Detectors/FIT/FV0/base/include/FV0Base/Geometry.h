@@ -136,6 +136,17 @@ class Geometry
   static constexpr float sZCone = sZAluFront + sDzAluFront / 2 - sDzAluCone / 2;              // aluminium frontplate cone z-position
   static constexpr float sXShiftScrews = sDxAluCover;                                         // x shift of all screw holes
 
+  // Screw dimensions
+  static constexpr int sNScrewTypes = 6;
+  static constexpr float sDrMinScrewTypes[sNScrewTypes] = { 0.25, 0.25, 0.4, 0.4, 0.4, 0.4 };
+  static constexpr float sDzMaxScrewTypes[sNScrewTypes] = { 6.02, 13.09, 13.1, 23.1, 28.3, 5 };  
+
+  // Rod dimensions
+  static constexpr int sNRodTypes = 4;
+  static constexpr float sDxMinRodTypes[sNRodTypes] = { 0.366, 0.344, 0.344, 0.344 };
+  static constexpr float sDyMinRodTypes[sNRodTypes] = { 0.5, 0.8, 0.8, 0.8 };
+  static constexpr float sDzMaxRodTypes[sNRodTypes] = { 12.5, 12.5, 22.5, 27.7 };
+
   /// Initialize the geometry.
   void initializeGeometry();
 
@@ -156,12 +167,6 @@ class Geometry
 
   /// Initialize the radii of the screw and rod positions.
   void initializeScrewAndRodRadii();
-
-  /// Initialize the screw type dimensions;
-  void initializeScrewTypeDimensions();
-
-  /// Initialize the rod type dimenstions;
-  void initializeRodTypeDimensions();
 
   void addScrewProperties(int screwType, int iRing, float phi);
 
@@ -185,10 +190,11 @@ class Geometry
   void initializeRodHoles();
 
   /// Initialize cell volumes with a specified thickness and medium.
-  /// \param  cellType  The type of the cells.
-  /// \param  zThicknes The thickness of the cells.
-  /// \param  medium    The medium of the cells.
-  void initializeCells(std::string cellType, const float zThickness, TGeoMedium* medium);
+  /// \param  cellType    The type of the cells.
+  /// \param  zThicknes   The thickness of the cells.
+  /// \param  medium      The medium of the cells.
+  /// \param  isSensitive Specifies if the cells are sensitive volumes.
+  void initializeCells(std::string cellType, const float zThickness, TGeoMedium* medium, bool isSensitive);
 
   /// Initialize scintillator cell volumes.
   void initializeScintCells();
@@ -210,23 +216,23 @@ class Geometry
 
   /// Assemble the sensitive volumes.
   /// \param  vFV0  The FIT V0 volume.
-  void assembleSensVols(TGeoVolumeAssembly* vFV0);
+  void assembleSensVols(TGeoVolume* vFV0);
 
   /// Assemble the non sensitive volumes.
   /// \param  vFV0  The FIT V0 volume.
-  void assembleNonSensVols(TGeoVolumeAssembly* vFV0);
+  void assembleNonSensVols(TGeoVolume* vFV0);
 
   /// Assemble the scintillator sectors.
   /// \param  vFV0  The FIT V0 volume.
-  void assembleScintSectors(TGeoVolumeAssembly* vFV0);
+  void assembleScintSectors(TGeoVolume* vFV0);
 
   /// Assemble the plastice sectors.
   /// \param  vFV0  The FIT V0 volume.
-  void assemblePlasticSectors(TGeoVolumeAssembly* vFV0);
+  void assemblePlasticSectors(TGeoVolume* vFV0);
 
   /// Assemble the fibers.
   /// \param  vFV0  The FIT V0 volume.
-  void assembleFibers(TGeoVolumeAssembly* vFV0);
+  void assembleFibers(TGeoVolume* vFV0);
 
   /// Assemble the screwss.
   /// \param  vFV0  The FIT V0 volume.
@@ -238,7 +244,7 @@ class Geometry
 
   /// Assemble the metal container.
   /// \param  vFV0  The FIT V0 volume.
-  void assembleMetalContainer(TGeoVolumeAssembly* vFV0);
+  void assembleMetalContainer(TGeoVolume* vFV0);
 
   /// Build sector assembly of specified type.
   /// \param  cellName  The type of the cells in the sector assembly.
@@ -254,18 +260,20 @@ class Geometry
   /// Create the shape for a specified screw.
   /// \param  shapeName   The name of the shape.
   /// \param  screwType   The number of the screw type.
-  /// \param  vEpsilon    Shrinks or expands the vertical dimensions of the screw shape.
-  /// \param  hEpsilon    Shrinks or expands the horizontal dimensions of the screw shape.
+  /// \param  xEpsilon    Shrinks or expands the x dimensions of the screw shape.
+  /// \param  yEpsilon    Shrinks or expands the y dimensions of the screw shape.
+  /// \param  zEpsilon    Shrinks or expands the z dimensions of the screw shape.
   /// \return The screw shape.
-  TGeoShape* createScrewShape(std::string shapeName, int screwType, float vEpsilon = 0, float hEpsilon = 0);
+  TGeoShape* createScrewShape(std::string shapeName, int screwType, float xEpsilon = 0, float yEpsilon = 0, float zEpsilon = 0);
 
   /// Create the shape for a specified rod.
   /// \param  shapeName The name of the shape.
   /// \param  rodType   The number of the rod type.
-  /// \param  vEpsilon  Shrinks or expands the vertical dimensions of the rod shape.
-  /// \param  hEpsilon  Shrinks or expands the horzontal dimensions of the rod shape.
+  /// \param  xEpsilon  Shrinks or expands the x dimensions of the rod shape.
+  /// \param  yEpsilon  Shrinks or expands the y dimensions of the rod shape.
+  /// \param  zEpsilon  Shrinks or expands the z dimensions of the rod shape.
   /// \return The rod shape.
-  TGeoShape* createRodShape(std::string shapeName, int rodType, float vEpsilon = 0, float hEpsilon = 0);
+  TGeoShape* createRodShape(std::string shapeName, int rodType, float xEpsilon = 0, float yEpsilon = 0, float zEpsilon = 0);
 
   /// Helper function for creating and registering a TGeoTranslation.
   TGeoTranslation* createAndRegisterTrans(std::string name, double dx, double dy, double dz);
@@ -299,19 +307,14 @@ class Geometry
   std::vector<float> mRScrewAndRod;                 // radii of the screw and rod positions.
 
   std::vector<float> mDzScrews;                     // length of screws (.at(n) -> length of screw no. n)
-  std::vector<float> mDzScrewTypes;                 // the different length of the screws
   std::vector<float> mDrScrews;                     // radii of the screws (.at(n) -> radius of screw no. n)
-  std::vector<float> mDrScrewTypes;                 // the different radii of the screws
   std::vector<float> mRScrews;                      // radii for the screw locations
   std::vector<int> mScrewTypes;                     // the type no. of each screw (.at(n) -> type no. of screw no. n)
 
-  std::vector<float> mDzRods;                       // length of rods (.at(n) -> length of rod no. n)
-  std::vector<float> mDzRodTypes;                   // the different length of the rods
-  std::vector<float> mDrRods;                       // radii of the rods (.at(n) -> radius of rod no. n)
-  std::vector<float> mDrRodTypes;                   // the different radii of the rods
-  std::vector<float> mDxRods;                       // width of the rods (.at(n) -> width of rod no. n)
-  std::vector<float> mDxRodTypes;                   // the different width of the rods
-  std::vector<int> mRodTypes;                       // the type no. of each rod (.at(n) -> type no. of rod no. n)
+  std::vector<float> mDxMinRods;
+  std::vector<float> mDyMinRods;
+  std::vector<float> mDzMaxRods;                       // length of rods (.at(n) -> length of rod no. n)
+  std::vector<int> mRodTypes;                          // the type no. of each rod (.at(n) -> type no. of rod no. n)
 
   std::vector<TGeoMatrix*> mSectorTrans;            // transformations of sectors (.at(0) -> sector 1)
   std::vector<std::vector<float>> mScrewPos;        // zyx-coordinates of all the screws

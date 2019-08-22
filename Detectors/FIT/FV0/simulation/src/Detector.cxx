@@ -255,6 +255,7 @@ void Detector::ConstructGeometry()
   // mGeometry->enableComponent(Geometry::eFiber, false);
   // mGeometry->enableComponent(Geometry::eAluminum, false);
   // mGeometry->enableComponent(Geometry::eScrew, false);
+  // mGeometry->enableComponent(Geometry::eRod, false);
   mGeometry->buildGeometry();
 }
 
