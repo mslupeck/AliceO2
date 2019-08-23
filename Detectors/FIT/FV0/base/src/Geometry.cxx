@@ -219,7 +219,7 @@ void Geometry::addScrewProperties(int screwTypeID, int iRing, float phi) {
   mScrewTypeIDs.push_back(screwTypeID);
   mScrewPos.push_back(std::vector<float> { cosf(phi * M_PI/180) * r,
                                            sinf(phi * M_PI/180) * r,
-                                           sZScint - sDzScint / 2 + sDzMaxScrewTypes[screwTypeID] / 2 });
+                                           sZScint - sDzScint / 2 + sZShiftScrew + sDzMaxScrewTypes[screwTypeID] / 2 });
   mDrMinScrews.push_back(sDrMinScrewTypes[screwTypeID]);
   mDrMaxScrews.push_back(sDrMaxScrewTypes[screwTypeID]);
   mDzMaxScrews.push_back(sDzMaxScrewTypes[screwTypeID]);
@@ -230,7 +230,7 @@ void Geometry::addRodProperties(int rodTypeID, int iRing) {
   mRodTypeIDs.push_back(rodTypeID);
   mRodPos.push_back(std::vector<float>{ sDxMinRodTypes[rodTypeID] / 2,
                                         mRScrewAndRod.at(iRing),
-                                        sZScint - sDzScint / 2 - 0.05f + sDzMaxRodTypes[rodTypeID] / 2 });
+                                        sZScint - sDzScint / 2 + sZShiftRod + sDzMaxRodTypes[rodTypeID] / 2 });
   mDxMinRods.push_back(sDxMinRodTypes[rodTypeID]);
   mDzMaxRods.push_back(sDxMaxRodTypes[rodTypeID]);
   mDyMinRods.push_back(sDyMinRodTypes[rodTypeID]);
@@ -241,7 +241,7 @@ void Geometry::addRodProperties(int rodTypeID, int iRing) {
   mRodTypeIDs.push_back(rodTypeID);
   mRodPos.push_back(std::vector<float>{ sDxMinRodTypes[rodTypeID] / 2,
                                         -mRScrewAndRod.at(iRing),
-                                        sZScint - sDzScint / 2 - 0.05f + sDzMaxRodTypes[rodTypeID] / 2 });
+                                        sZScint - sDzScint / 2 + sZShiftRod + sDzMaxRodTypes[rodTypeID] / 2 });
   mDxMinRods.push_back(sDxMinRodTypes[rodTypeID]);
   mDzMaxRods.push_back(sDxMaxRodTypes[rodTypeID]);
   mDyMinRods.push_back(sDyMinRodTypes[rodTypeID]);
@@ -1071,8 +1071,6 @@ void Geometry::assembleRods(TGeoVolume* vFV0)
   LOG(INFO) << "FV0 Geometry::assembleRods(): Assembling rods";
 
   TGeoVolumeAssembly* rods = new TGeoVolumeAssembly("FV0RODS");
-  TGeoVolumeAssembly* rodsLeft = new TGeoVolumeAssembly("FV0RODSLEFT");
-  TGeoVolumeAssembly* rodsRight = new TGeoVolumeAssembly("FV0RODSRIGHT");
 
   // TODO: Add check for rod initialization?
 
@@ -1082,14 +1080,14 @@ void Geometry::assembleRods(TGeoVolume* vFV0)
     if (!rod) {
       LOG(INFO) << "FV0 Geometry::assembleRods(): Rod not found";
     } else {
-      rodsRight->AddNode(rod, i, new TGeoTranslation(mRodPos[i][0], mRodPos[i][1], mRodPos[i][2]));
-      rodsLeft->AddNode(rod, i, new TGeoTranslation(-mRodPos[i][0], mRodPos[i][1], mRodPos[i][2]));
+      rods->AddNode(rod, i, new TGeoTranslation(mRodPos[i][0] + sXShiftScrews, mRodPos[i][1], mRodPos[i][2]));
     }
   }
 
-  rods->AddNode(rodsLeft, 1, new TGeoTranslation(-sXShiftScrews, 0,0));
-  rods->AddNode(rodsRight, 2, new TGeoTranslation(sXShiftScrews, 0, 0));
+  TGeoRotation* reflection = new TGeoRotation();
+  reflection->ReflectX(true);
   vFV0->AddNode(rods, 1);
+  vFV0->AddNode(rods, 2, reflection);
 }
 
 void Geometry::assembleMetalContainer(TGeoVolume* volV0)
@@ -1158,17 +1156,45 @@ TGeoVolumeAssembly* Geometry::buildSector(std::string cellType, int iSector)
 
 TGeoShape* Geometry::createScrewShape(std::string shapeName, int screwTypeID, float xEpsilon, float yEpsilon, float zEpsilon)
 { 
-  float epsilon = (fabs(xEpsilon) > fabs(yEpsilon)) ? xEpsilon : yEpsilon;
-  TGeoTube* screwShape = new TGeoTube(shapeName.c_str(), 0, sDrMinScrewTypes[screwTypeID] + epsilon, sDzMaxScrewTypes[screwTypeID] / 2 + zEpsilon);
+  float xyEpsilon = (fabs(xEpsilon) > fabs(yEpsilon)) ? xEpsilon : yEpsilon;
+  float dzMax = sDzMaxScrewTypes[screwTypeID] / 2 + zEpsilon;
+  float dzMin = sDzMinScrewTypes[screwTypeID] / 2 + zEpsilon;
+
+  std::string thinPartName = shapeName + "Thin";
+  std::string thickPartName = shapeName + "Thick";
+  std::string thickPartTransName = thickPartName + "Trans";
+
+  TGeoTube* thinPart = new TGeoTube(thinPartName.c_str(), 0, sDrMinScrewTypes[screwTypeID] + xyEpsilon, dzMax);
+  TGeoTube* thickPart = new TGeoTube(thickPartName.c_str(), 0, sDrMaxScrewTypes[screwTypeID] + xyEpsilon, dzMin);  
+  createAndRegisterTrans(thickPartTransName, 0, 0, -dzMax - sZShiftScrew + sDzScint + sDzPlast + dzMin);
+
+  std::string boolFormula = thinPartName;
+  boolFormula += "+" + thickPartName + ":" + thickPartTransName;
+
+  TGeoCompositeShape* screwShape = new TGeoCompositeShape(shapeName.c_str(), boolFormula.c_str());
   return screwShape;
 }
 
-TGeoShape* Geometry::createRodShape(std::string shapeName, int rodType, float xEpsilon, float yEpsilon, float zEpsilon)
+TGeoShape* Geometry::createRodShape(std::string shapeName, int rodTypeID, float xEpsilon, float yEpsilon, float zEpsilon)
 {
-  TGeoBBox* rodShape = new TGeoBBox(shapeName.c_str(),
-                                    sDxMinRodTypes[rodType] / 2 + xEpsilon,
-                                    sDyMinRodTypes[rodType] / 2 + yEpsilon,
-                                    sDzMaxRodTypes[rodType] / 2 + zEpsilon);
+  float dxMin = sDxMinRodTypes[rodTypeID] / 2 + xEpsilon;
+  float dxMax = sDxMaxRodTypes[rodTypeID] / 2 + xEpsilon;
+  float dyMin = sDyMinRodTypes[rodTypeID] / 2 + yEpsilon;
+  float dyMax = sDyMaxRodTypes[rodTypeID] / 2 + yEpsilon;
+  float dzMax = sDzMaxRodTypes[rodTypeID] / 2 + zEpsilon;
+  float dzMin = sDzMinRodTypes[rodTypeID] / 2 + zEpsilon;
+
+  std::string thinPartName = shapeName + "Thin";
+  std::string thickPartName = shapeName + "Thick";
+  std::string thickPartTransName = thickPartName + "Trans";
+
+  TGeoBBox* thinPart = new TGeoBBox(thinPartName.c_str(), dxMin, dyMin, dzMax);
+  TGeoBBox* thickPart = new TGeoBBox(thickPartName.c_str(), dxMax, dyMax, dzMin);
+  createAndRegisterTrans(thickPartTransName, dxMax - dxMin, 0, -dzMax - sZShiftRod + sDzScint + sDzPlast + dzMin);
+
+  std::string boolFormula = thinPartName;
+  boolFormula += "+" + thickPartName + ":" + thickPartTransName;
+  TGeoCompositeShape* rodShape = new TGeoCompositeShape(shapeName.c_str(), boolFormula.c_str());
   return rodShape;
 }
 

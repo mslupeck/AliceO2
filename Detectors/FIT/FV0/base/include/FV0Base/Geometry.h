@@ -156,6 +156,7 @@ class Geometry
   static constexpr float sDrMaxScrewTypes[sNScrewTypes] { 0, 0.5, 0.6, 0.6, 0.6, 0};          // radius of the thicker part of the screw types
   static constexpr float sDzMaxScrewTypes[sNScrewTypes] { 6.02, 13.09, 13.1, 23.1, 28.3, 5 }; // length of the thinner part of the screw types
   static constexpr float sDzMinScrewTypes[sNScrewTypes] { 0, 6.78, 6.58, 15.98, 21.48, 0 };   // length of the thicker part of the screw types
+  static constexpr float sZShiftScrew = 0;                                                    // z shift of screws. 0 means they are aligned with the scintillator.
 
   // Rod dimensions
   static constexpr int sNRodTypes = 4;
@@ -165,6 +166,7 @@ class Geometry
   static constexpr float sDyMaxRodTypes[sNRodTypes] { 0.9, 1.2, 1.2, 1.2 };                   // height of the thicker part of the rod types
   static constexpr float sDzMaxRodTypes[sNRodTypes] { 12.5, 12.5, 22.5, 27.7 };               // length of the thinner part of the rod types
   static constexpr float sDzMinRodTypes[sNRodTypes] { 7.45, 7.45, 17.45, 22.65 };             // length of the thicker part of the rod types
+  static constexpr float sZShiftRod = -0.05;                                                  // z shift of rods. 0 means they are aligned with tht scintillators.
 
   // Strings for volume names etc.
   inline static const std::string sScintName = "SCINT";
