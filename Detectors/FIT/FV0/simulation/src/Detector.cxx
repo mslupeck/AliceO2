@@ -253,9 +253,9 @@ void Detector::ConstructGeometry()
   // mGeometry->enableComponent(Geometry::eScintinllator, false);
   // mGeometry->enableComponent(Geometry::ePlastics, false);
   // mGeometry->enableComponent(Geometry::eFibers, false);
-  // mGeometry->enableComponent(Geometry::eAluminiumContainer, false);
   // mGeometry->enableComponent(Geometry::eScrews, false);
-  // mGeometry->enableComponent(Geometry::eRod, false);
+  // mGeometry->enableComponent(Geometry::eRods, false);
+  // mGeometry->enableComponent(Geometry::eAluminiumContainer, false);
   mGeometry->buildGeometry();
 }
 

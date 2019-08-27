@@ -20,7 +20,7 @@
 #include <vector>
 #include <TGeoMatrix.h>
 #include <TGeoVolume.h>
-#include "TVirtualMC.h"
+#include <TVirtualMC.h>
 
 namespace o2
 {
@@ -67,7 +67,7 @@ class Geometry
   Geometry(EGeoType initType);
 
   /// Copy constructor.
-  Geometry(const Geometry& geom);
+  Geometry(const Geometry& geometry);
 
   /// Get the unique ID of the current scintillator cell during simulation.
   /// The ID is a number from 1 to 40 starting from the first cell left of the y-axis
@@ -113,7 +113,7 @@ class Geometry
   static constexpr float sDrSeparationScint = 0.03 + 0.04;  // paint thickness + half of separation gap
   
   static constexpr float sXShiftInnerRadiusScint = -0.15;   // shift of the inner radius origin of the scintillators
-  static constexpr float sDxHoleExtScint = 0.2;             // extension of the scintillator holes closest to the vertical aluminum cover
+  static constexpr float sDxHoleExtensionScint = 0.2;       // extension of the scintillator holes closest to the vertical aluminum cover
   static constexpr float sDrHoleLargeScint = 0.415;         // radius of the large scintillator hole
   static constexpr float sDrHoleSmallScint = 0.265;         // radius of the small scintillator hole
 
@@ -141,16 +141,16 @@ class Geometry
   static constexpr float sDyAluStandBottom = 2;             // thickness of aluminum stand bottom
 
   // Local position constants
-  static constexpr float sZScint = 0;                                                         // scintillator z-position
-  static constexpr float sZPlast = sZScint + sDzScint / 2 + sDzPlast / 2;                     // plastic z-position
-  static constexpr float sZAluBack = sZScint - sDzScint / 2 - sDzAluBack / 2;                 // aluminium backplate z-position
+  static constexpr float sPosScint[] { sDxAluCover, 0, 0 };                                   // local position of the right half of the scintillator
+  static constexpr float sZPlast = sPosScint[2] + sDzScint / 2 + sDzPlast / 2;                // plastic z-position
+  static constexpr float sZAluBack = sPosScint[2] - sDzScint / 2 - sDzAluBack / 2;            // aluminium backplate z-position
   static constexpr float sZAluFront = sZAluBack - sDzAluBack / 2 + sDzAlu - sDzAluFront / 2;  // aluminium frontplate z-position
   static constexpr float sZAluMid = (sZAluBack + sZAluFront) / 2;                             // middle z of aluminum container
   static constexpr float sZFiber = (sZPlast + sZAluFront) / 2;                                // fiber z-position (plastic and frontplate midpoint)
   static constexpr float sZCone = sZAluFront + sDzAluFront / 2 - sDzAluCone / 2;              // aluminium frontplate cone z-position
-  static constexpr float sXShiftScrews = sDxAluCover;                                         // x shift of all screw holes
+  static constexpr float sXShiftScrews = sPosScint[0];                                         // x shift of all screw holes
 
-  // Screw dimensions
+  // Screw and rod dimensions
   static constexpr int sNScrewTypes = 6;                                                      // number of different screw types
   static constexpr float sDrMinScrewTypes[sNScrewTypes] { 0.25, 0.25, 0.4, 0.4, 0.4, 0.4 };   // radius of the thinner part of the screw types
   static constexpr float sDrMaxScrewTypes[sNScrewTypes] { 0, 0.5, 0.6, 0.6, 0.6, 0};          // radius of the thicker part of the screw types
@@ -158,7 +158,6 @@ class Geometry
   static constexpr float sDzMinScrewTypes[sNScrewTypes] { 0, 6.78, 6.58, 15.98, 21.48, 0 };   // length of the thicker part of the screw types
   static constexpr float sZShiftScrew = 0;                                                    // z shift of screws. 0 means they are aligned with the scintillator.
 
-  // Rod dimensions
   static constexpr int sNRodTypes = 4;
   static constexpr float sDxMinRodTypes[sNRodTypes] { 0.366, 0.344, 0.344, 0.344 };           // width of the thinner part of the rod types
   static constexpr float sDxMaxRodTypes[sNRodTypes] { 0.536, 0.566, 0.566, 0.716 };           // width of the thicker part of the rod types
@@ -193,17 +192,26 @@ class Geometry
   /// Initialize vectors with geometry information.
   void initializeVectors();
 
-  /// Initialize the cell radii.
-  void initializeCellRadii();
+  /// Initialize the cell ring radii.
+  void initializeCellRingRadii();
 
   /// Initialize sector transformations.
   void initializeSectorTransformations();
 
   /// Initialize fiber volume radii.
-  void initializeFiberRadii();
+  void initializeFiberVolumeRadii();
+
+  /// Initialize fiber mediums.
+  void initializeFiberMedium();
 
   /// Initialize the radii of the screw and rod positions.
   void initializeScrewAndRodRadii();
+
+  /// Initialize the screw type medium.
+  void initializeScrewTypeMedium();
+
+  /// Initialize the rod type medium.
+  void initializeRodTypeMedium();
 
   /// Add a screw propery set to the collection of total screws.
   /// \param  screwTypeID The screw type ID.
@@ -332,6 +340,8 @@ class Geometry
   std::vector<float> mRMaxScint;                    // outer radii of scintillator rings (.at(0) -> ring 1, .at(4) -> ring 5)
   std::vector<float> mRMinFiber;                    // inner radii of fiber volumes (.at(0) -> fiber 1)
   std::vector<float> mRMaxFiber;                    // outer radii of fiber volumes (.at(0) -> fiber 1)
+  std::vector<TGeoMedium*> mMediumFiber;            // Medium of the fiber volumes (.at(n) -> medium of fiber the n:th fiber starting from the middle)
+
   std::vector<float> mRScrewAndRod;                 // radii of the screw and rod positions.
 
   std::vector<float> mDrMinScrews;                  // radii of the thinner part of the screws
@@ -353,6 +363,8 @@ class Geometry
   std::vector<TGeoMatrix*> mSectorTrans;            // transformations of sectors (.at(0) -> sector 1)
   std::vector<std::vector<float>> mScrewPos;        // xyz-coordinates of all the screws
   std::vector<std::vector<float>> mRodPos;          // xyz-coordinates of all the rods
+  std::vector<TGeoMedium*> mMediumScrewTypes;       // medium of the screw types
+  std::vector<TGeoMedium*> mMediumRodTypes;         // medium of the rod types
 
   int mGeometryType;                                // same meaning as initType in constructor
   std::map<EGeoComponent, bool> mEnabledComponents; // map of the enabled state of all geometry components.
