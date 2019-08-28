@@ -236,17 +236,17 @@ void Geometry::initializeScrewAndRodRadii()
 
 void Geometry::initializeScrewTypeMedium()
 {
-  TGeoMedium* steel = gGeoManager->GetMedium("FV0_Stainless_Steel$");
+  TGeoMedium* medium = gGeoManager->GetMedium("FV0_Titanium$");
   for (int i = 0; i < sNScrewTypes; i++) {
-    mMediumScrewTypes.push_back(steel);
+    mMediumScrewTypes.push_back(medium);
   }
 }
 
 void Geometry::initializeRodTypeMedium()
 {
-  TGeoMedium* steel = gGeoManager->GetMedium("FV0_Stainless_Steel$");
+  TGeoMedium* medium = gGeoManager->GetMedium("FV0_Aluminium$");
   for (int i = 0; i < sNRodTypes; i++) {
-    mMediumRodTypes.push_back(steel);
+    mMediumRodTypes.push_back(medium);
   }
 }
 
@@ -751,11 +751,6 @@ void Geometry::initializeScrews()
     TGeoShape* screwShape = createScrewShape(screwName + "Shape", i, 0, 0, 0);
 
     // TODO: Add check for medium?
-
-    TGeoMedium* med = mMediumScrewTypes[i];
-    if (!med) {
-      LOG(INFO) << "ANDREAS med not found";
-    }
     new TGeoVolume(screwName.c_str(), screwShape, mMediumScrewTypes[i]);
   }
 }
@@ -770,7 +765,7 @@ void Geometry::initializeRods()
     TGeoShape* rodShape = createRodShape(rodName + "Shape", i, -sEpsilon, -sEpsilon);
 
     // TODO: Add check for medium?
-    new TGeoVolume(rodName.c_str(), rodShape, mMediumScrewTypes[i]);
+    new TGeoVolume(rodName.c_str(), rodShape, mMediumRodTypes[i]);
   }
 }
 

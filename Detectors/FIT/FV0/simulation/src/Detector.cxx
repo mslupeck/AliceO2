@@ -186,9 +186,17 @@ void Detector::createMaterials()
   Float_t dAlu = 2.7;
 
   // Steel (taken from FDD)
-  Float_t asteel[4] = { 55.847, 51.9961, 58.6934, 28.0855 };
-  Float_t zsteel[4] = { 26., 24., 28., 14. };
-  Float_t wsteel[4] = { .715, .18, .1, .005 };
+  Float_t aSteel[4] = { 55.847, 51.9961, 58.6934, 28.0855 };
+  Float_t zSteel[4] = { 26., 24., 28., 14. };
+  Float_t wSteel[4] = { .715, .18, .1, .005 };
+
+  // Titanium TODO: Verify. This is Titanium grade 5 (https://en.wikipedia.org/wiki/Titanium_alloy)
+  // without iron and oxygen
+  const Int_t nTitanium = 3;
+  Float_t aTitanium[nTitanium] = { 47.87, 26.98, 50.94 };
+  Float_t zTitanium[nTitanium] = { 22, 13, 23 };
+  Float_t wTitanium[nTitanium] = { 0.9, 0.06, 0.04 };
+  Float_t dTitanium = 4.42;
 
   Int_t matId = 0;                  // tmp material id number
   const Int_t unsens = 0, sens = 1; // sensitive or unsensitive medium
@@ -238,9 +246,13 @@ void Detector::createMaterials()
                              stmin);
 
   // TODO: verify numbers, taken from FDD
-  o2::base::Detector::Mixture(++matId, "Stainless_Steel$", asteel, zsteel, 7.88, 4, wsteel);
+  o2::base::Detector::Mixture(++matId, "Stainless_Steel$", aSteel, zSteel, 7.88, 4, wSteel);
   o2::base::Detector::Medium(Steel, "Stainless_Steel$", matId, unsens, fieldType, maxField, tmaxfd, stemax, deemax,
                              epsil, stmin);
+
+  o2::base::Detector::Mixture(++matId, "Titanium$", aTitanium, zTitanium, dTitanium, nTitanium, wTitanium);
+  o2::base::Detector::Medium(Titanium, "Titanium$", matId, unsens, fieldType, maxField, tmaxfd, stemax, deemax, epsil,
+                             stmin);
 
   LOG(DEBUG) << "FV0 Detector::createMaterials(): matId = " << matId;
 }
