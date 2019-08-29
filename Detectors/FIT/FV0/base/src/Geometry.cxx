@@ -50,20 +50,25 @@ const int Geometry::getCurrentCellId(TVirtualMC* fMC)
 {
   int ring = -1;
   int sector = -1;
+  int half = -1;
 
   fMC->CurrentVolOffID(0, ring);
   fMC->CurrentVolOffID(1, sector);
+  fMC->CurrentVolOffID(2, half);
+
+  sector = sector + half * 4;
 
   // // TODO: Remove (this is for debuging purposes during development only)
   // LOG(INFO) << "FV0 Geometry::getCurrentCellId():";
-  // LOG(INFO) << "Ring id  :   " << ring;
+  // LOG(INFO) << "Half id:     " << half;
+  // LOG(INFO) << "Half name:   " << fMC->CurrentVolOffName(2);
+  // LOG(INFO) << "Ring id:     " << ring;
   // LOG(INFO) << "Ring name:   " << fMC->CurrentVolOffName(0);
   // LOG(INFO) << "Sector id:   " << sector;
   // LOG(INFO) << "Sector name: " << fMC->CurrentVolOffName(1);
-  // LOG(INFO) << "Cell id :    " << sector + 8 * (ring - 1);
-  // LOG(INFO) << "";
+  // LOG(INFO) << "Cell id :    " << sector + 8 * ring << "\n";
 
-  return sector + 8 * (ring - 1);
+  return sector + 8 * ring;
 }
 
 bool Geometry::enableComponent(EGeoComponent component, bool enable)
@@ -84,22 +89,21 @@ void Geometry::buildGeometry()
   }
 
   // Top volume of FIT V0 detector
-  TGeoVolumeAssembly* vFV0 = new TGeoVolumeAssembly("FV0");
+  TGeoVolumeAssembly* vFV0 = new TGeoVolumeAssembly(sDetectorName.c_str());
   LOG(INFO) << "FV0 Geometry::buildGeometry():: FV0 volume name = " << vFV0->GetName();
 
   assembleSensVols(vFV0);
   assembleNonSensVols(vFV0);
 
-  TGeoTranslation* globalShift = new TGeoTranslation(sXGlobal, sYGlobal, sZGlobal);
-
   // TODO: What shoud the copy_no be?
-  vALIC->AddNode(vFV0, 1, globalShift);
+  vALIC->AddNode(vFV0, 1, new TGeoTranslation(sXGlobal, sYGlobal, sZGlobal));
 }
 
 void Geometry::initializeGeometry()
 {
   initializeMaps();
   initializeVectors();
+  initializeTransformations();
   initializeSensVols();
   initializeNonSensVols();
 }
@@ -149,59 +153,26 @@ void Geometry::initializeSectorTransformations()
 {
   LOG(INFO) << "FV0 Geometry::initializeSectorTransformations(): Initializing FV0 sector transformations";
 
-  for (int iSector = 1; iSector <= sNCellSectors; iSector++) {
-    // iSector = 1 corresponds to the first sector counter-clockwise from the y-axis + global azimuthal rotation
-    // iSector = 2 corresponds to the next sector in counter-clockwise direction
+  for (int iSector = 0; iSector < sNCellSectors; iSector++) {
+    // iSector = 1 corresponds to the first sector clockwise from the y-axis
+    // iSector = 2 corresponds to the next sector in clockwise direction and so on
 
-    // if the sector is rotated, this is the angle (plus an extra 45 for "b"-type cells)
-    float phi = iSector * 45;
-
-    std::string rotName = "FV0_rotationSector" + std::to_string(iSector);
-    std::string reflName = "FV0_reflectSector" + std::to_string(iSector);
-    std::string totalTransName = "FV0_totalTransformSector" + std::to_string(iSector);
-
-    TGeoRotation* rot = new TGeoRotation(rotName.c_str());            // rotation of the sector
-    TGeoRotation* refl = new TGeoRotation(reflName.c_str());          // reflection of the sector
-    TGeoHMatrix* totTrans = new TGeoHMatrix(totalTransName.c_str());  // the combined transformation
+    TGeoRotation* trans = createAndRegisterRot("FV0SECTOR" + std::to_string(iSector) + "TRANS");
 
     // The reference to "a" and "b" can be understood with the CAD drawings of the detector.
     switch (iSector)
     {
-    case 1: // "a"-mirror
-      refl->ReflectX(true);
-      break;
     case 2: // "b"-mirror
-      refl->ReflectX(true);
+      trans->ReflectY(true);
       break;
-    case 3: // "b"
-      rot->SetAngles(phi + 45, 0, 0);
-      break;
-    case 4: // "a"
-      rot->SetAngles(phi, 0, 0);
-      break;
-    case 5: // "a"-mirror
-      refl->ReflectY(true);
-      break;
-    case 6: // "b"-mirror
-      refl->ReflectY(true);
-      break;
-    case 7: // "b"
-      rot->SetAngles(phi + 45, 0, 0);
-      break;
-    case 8: // "a"
-      rot->SetAngles(phi, 0, 0);
+    case 3: // "a"-mirror
+      trans->ReflectY(true);
       break;
     default:
       break;
     }
 
-    // Rotate the sector with the global rotation angle
-    rot->SetAngles(rot->GetPhiRotation() + sGlobalPhiRotation, 0, 0);
-
-    // Combine the rotation and reflection
-    *totTrans = *rot * *refl;
-    totTrans->RegisterYourself();
-    mSectorTrans.push_back(totTrans);
+    mSectorTrans.push_back(trans);
   }
 }
 
@@ -335,6 +306,20 @@ void Geometry::initializeScrewAndRodPositionsAndDimensions()
   }
 }
 
+void Geometry::initializeTransformations()
+{
+  
+  TGeoTranslation* leftTranslation = new TGeoTranslation(-sDxHalvesSeparation / 2, 0, 0);
+  TGeoRotation* leftRotation = new TGeoRotation();
+  leftRotation->ReflectX(true);
+  TGeoHMatrix leftTotalTransformation = *leftRotation * *leftTranslation;
+
+  TGeoTranslation* rightTranslation = new TGeoTranslation(sDxHalvesSeparation / 2, sDyHalvesSeparation, sDzHalvesSeparation);
+
+  mLeftTransformation = new TGeoHMatrix(leftTotalTransformation);
+  mRightTransformation = rightTranslation;
+}
+
 void Geometry::initializeSensVols()
 {
   initializeScintCells();
@@ -450,7 +435,7 @@ void Geometry::initializeCells(std::string cellType, float zThickness, TGeoMediu
     // |
     // 0--------------> x
 
-    std::string aCellName = "FV0" + cellType + sCellName + "a" + std::to_string(ir + 1);
+    std::string aCellName = createVolumeName(cellType + sCellName + "a", ir);
 
     LOG(INFO) << "FV0 Geometry::initializeCells(): Initializing cell " << aCellName;
 
@@ -572,7 +557,8 @@ void Geometry::initializeCells(std::string cellType, float zThickness, TGeoMediu
     // |
     // 0--------------> x
 
-    std::string bCellName = "FV0" + cellType + sCellName + "b" + std::to_string(ir + 1);
+    // std::string bCellName = "FV0" + cellType + sCellName + "b" + std::to_string(ir + 1);
+    std::string bCellName = createVolumeName(cellType + sCellName + "b", ir);
 
     LOG(INFO) << "FV0 Geometry::initializeCells(): Initializing cell " << bCellName;
 
@@ -1024,13 +1010,22 @@ void Geometry::assembleNonSensVols(TGeoVolume* vFV0)
 void Geometry::assembleScintSectors(TGeoVolume* vFV0)
 {
   TGeoVolumeAssembly* sectors = buildSectorAssembly(sScintName);
-  vFV0->AddNode(sectors, 1);
+  vFV0->AddNode(sectors, 0, mLeftTransformation);
+  vFV0->AddNode(sectors, 1, mRightTransformation);
 }
 
 void Geometry::assemblePlasticSectors(TGeoVolume* vFV0)
 {
   TGeoVolumeAssembly* sectors = buildSectorAssembly(sPlastName);
-  vFV0->AddNode(sectors, 1, new TGeoTranslation(0, 0, sZPlast));
+  
+  TGeoHMatrix* leftTrans = new TGeoHMatrix(*mLeftTransformation);
+  leftTrans->SetDz(leftTrans->GetTranslation()[2] + sZPlast);
+
+  TGeoMatrix* rightTrans = new TGeoHMatrix(*mRightTransformation);
+  rightTrans->SetDz(rightTrans->GetTranslation()[2] + sZPlast);
+
+  vFV0->AddNode(sectors, 0, leftTrans);
+  vFV0->AddNode(sectors, 1, rightTrans);
 }
 
 void Geometry::assembleFibers(TGeoVolume* vFV0)
@@ -1045,11 +1040,8 @@ void Geometry::assembleFibers(TGeoVolume* vFV0)
     fibers->AddNode(fiber, i);
   }
 
-  TGeoRotation* reflection = new TGeoRotation();
-  reflection->ReflectX(true);
-
-  vFV0->AddNode(fibers, 1);
-  vFV0->AddNode(fibers, 2, reflection);
+  vFV0->AddNode(fibers, 1, mLeftTransformation);
+  vFV0->AddNode(fibers, 2, mRightTransformation);
 }
 
 void Geometry::assembleScrews(TGeoVolume* vFV0)
@@ -1069,11 +1061,8 @@ void Geometry::assembleScrews(TGeoVolume* vFV0)
     }
   }
 
-  TGeoRotation* reflection = new TGeoRotation();
-  reflection->ReflectX(true);
-
-  vFV0->AddNode(screws, 1);
-  vFV0->AddNode(screws, 2, reflection);
+  vFV0->AddNode(screws, 1, mLeftTransformation);
+  vFV0->AddNode(screws, 2, mRightTransformation);
 }
 
 void Geometry::assembleRods(TGeoVolume* vFV0)
@@ -1094,11 +1083,8 @@ void Geometry::assembleRods(TGeoVolume* vFV0)
     }
   }
 
-  TGeoRotation* reflection = new TGeoRotation();
-  reflection->ReflectX(true);
-
-  vFV0->AddNode(rods, 1);
-  vFV0->AddNode(rods, 2, reflection);
+  vFV0->AddNode(rods, 1, mLeftTransformation);
+  vFV0->AddNode(rods, 2, mRightTransformation);
 }
 
 void Geometry::assembleMetalContainer(TGeoVolume* volV0)
@@ -1106,59 +1092,45 @@ void Geometry::assembleMetalContainer(TGeoVolume* volV0)
   std::string containerName = "FV0" + sContainerName;
   TGeoVolume* container = gGeoManager->GetVolume(containerName.c_str());
   if (!container) {
-    LOG(WARNING) << "FV0: Couldn't find volume " << containerName;
+    LOG(WARNING) << "FV0: Could not find volume " << containerName;
   } else {
-    TGeoRotation* reflection = new TGeoRotation();
-    reflection->ReflectX(true);
-
-    volV0->AddNode(container, 1);
-    volV0->AddNode(container, 2, reflection);
+    volV0->AddNode(container, 1, mLeftTransformation);
+    volV0->AddNode(container, 2, mRightTransformation);
   }
 }
 
 TGeoVolumeAssembly* Geometry::buildSectorAssembly(std::string cellName)
 {
-  std::string assemblyName = "FV0" + cellName;
-  TGeoVolumeAssembly* assembly = new TGeoVolumeAssembly(assemblyName.c_str());
-  TGeoVolumeAssembly* left = new TGeoVolumeAssembly((assemblyName + "LEFT").c_str());
-  TGeoVolumeAssembly* right = new TGeoVolumeAssembly((assemblyName + "RIGHT").c_str());
+  TGeoVolumeAssembly* assembly = new TGeoVolumeAssembly(createVolumeName(cellName).c_str());
 
-  for (int iSector = 0; iSector < ceil(mSectorTrans.size() / 2); iSector++) {
+  for (int iSector = 0; iSector < mSectorTrans.size(); iSector++) {
     TGeoVolumeAssembly* sector = buildSector(cellName, iSector);
-    left->AddNode(sector, iSector + 1, mSectorTrans.at(iSector));
+    assembly->AddNode(sector, iSector, mSectorTrans[iSector]);
   }
-
-  for (int iSector = ceil(mSectorTrans.size() / 2); iSector < mSectorTrans.size(); iSector++) {
-    TGeoVolumeAssembly* sector = buildSector(cellName, iSector);
-    right->AddNode(sector, iSector + 1, mSectorTrans.at(iSector));
-  }
-
-  assembly->AddNode(left, 1, new TGeoTranslation(-sDxAluCover, 0, 0));
-  assembly->AddNode(right, 2, new TGeoTranslation(sDxAluCover, 0, 0));
 
   return assembly;
 }
 
 TGeoVolumeAssembly* Geometry::buildSector(std::string cellType, int iSector)
 {
-  std::stringstream ssSectorName;
-  ssSectorName << "FV0" << cellType << sSectorName << iSector + 1;
+  std::string sectorName = createVolumeName(cellType + sSectorName, iSector + 1);
 
-  LOG(DEBUG) << "FV0 Geometry::buildSector(): building sector " << ssSectorName.str();
+  LOG(DEBUG) << "FV0 Geometry::buildSector(): building sector " << sectorName;
 
-  TGeoVolumeAssembly* sector = new TGeoVolumeAssembly(ssSectorName.str().c_str());
+  TGeoVolumeAssembly* sector = new TGeoVolumeAssembly(sectorName.c_str());
 
   for (int i = 0; i < sNCellRings; i++) {
-    std::stringstream ssCellName;
-    ssCellName << "FV0" << cellType << sCellName << sCellTypes[iSector] << i + 1;
+    std::string cellName = createVolumeName(cellType + sCellName + sCellTypes[iSector], i);
 
-    TGeoVolume* cell = gGeoManager->GetVolume(ssCellName.str().c_str());
+    TGeoVolume* cell = gGeoManager->GetVolume(cellName.c_str());
 
     if (!cell) {
-      LOG(WARNING) << "FV0 Geometry::buildSector(): Couldn't find cell volume " << ssCellName.str();
+      LOG(WARNING) << "FV0 Geometry::buildSector(): Couldn't find cell volume " << cellName;
     } else {
-      LOG(DEBUG) << "FV0 Geometry::buildSector(): adding cell volume " << ssCellName.str();
-      sector->AddNode(cell, i + 1);
+      LOG(DEBUG) << "FV0 Geometry::buildSector(): Adding cell volume " << cellName;
+
+      // TODO: add this translation somewhere else
+      sector->AddNode(cell, i, new TGeoTranslation(sPosScint[0], sPosScint[1], sPosScint[2]));
     }
   }
 
@@ -1221,4 +1193,9 @@ TGeoRotation* Geometry::createAndRegisterRot(std::string name, double phi, doubl
   TGeoRotation* rot = new TGeoRotation(name.c_str(), phi, theta, psi);
   rot->RegisterYourself();
   return rot;
+}
+
+std::string Geometry::createVolumeName(std::string volumeType, int number)
+{
+  return sDetectorName + volumeType + ((number >= 0) ? std::to_string(number) : "");
 }

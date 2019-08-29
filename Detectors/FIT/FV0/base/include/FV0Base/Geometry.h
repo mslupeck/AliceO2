@@ -90,6 +90,8 @@ class Geometry
   void buildGeometry();
 
  private:
+  inline static const std::string sDetectorName = "FV0";
+
   // General geometry constants
   static constexpr float sEpsilon = 0.01;                   // variable used to make sure one spatial dimension is infinitesimaly larger than the other
   static constexpr float sDzScint = 4;                      // thickness of scintillator
@@ -106,10 +108,10 @@ class Geometry
 
   // Cell and scintillator constants
   // static constexpr float sDySeparationScint = sDrSeparationScint;
-  static constexpr int sNCellSectors = 8;                   // number of sectors
+  static constexpr int sNCellSectors = 4;                   // number of sectors for one half of the detector
   static constexpr int sNCellRings = 5;                     // number of rings
   static constexpr float sCellRingRadii[sNCellRings + 1] { 4.01, 7.3, 12.9, 21.25, 38.7, 72.115 }; // average ring radii
-  static constexpr char sCellTypes[sNCellSectors] { 'a', 'b', 'b', 'a', 'a', 'b', 'b', 'a'};  // ordered cell types per ring in
+  static constexpr char sCellTypes[sNCellSectors] { 'a', 'b', 'b', 'a'};  // ordered cell types per half a ring
   static constexpr float sDrSeparationScint = 0.03 + 0.04;  // paint thickness + half of separation gap
   
   static constexpr float sXShiftInnerRadiusScint = -0.15;   // shift of the inner radius origin of the scintillators
@@ -191,6 +193,9 @@ class Geometry
 
   /// Initialize vectors with geometry information.
   void initializeVectors();
+
+  /// Initialize common transformations.
+  void initializeTransformations();
 
   /// Initialize the cell ring radii.
   void initializeCellRingRadii();
@@ -328,10 +333,13 @@ class Geometry
   TGeoShape* createRodShape(std::string shapeName, int rodTypeID, float xEpsilon = 0, float yEpsilon = 0, float zEpsilon = 0);
 
   /// Helper function for creating and registering a TGeoTranslation.
-  TGeoTranslation* createAndRegisterTrans(std::string name, double dx, double dy, double dz);
+  TGeoTranslation* createAndRegisterTrans(std::string name, double dx = 0, double dy = 0, double dz = 0);
 
   /// Helper function for creating and registering a TGeoRotation.
-  TGeoRotation* createAndRegisterRot(std::string name, double phi, double theta, double psi);
+  TGeoRotation* createAndRegisterRot(std::string name, double phi = 0, double theta = 0, double psi = 0);
+
+  /// Helper function for creating volume names.
+  std::string createVolumeName(std::string volumeType, int number = -1);
 
   std::vector<std::string> mSensitiveVolumeNames;   // The names of all the sensitive volumes
 
@@ -368,6 +376,8 @@ class Geometry
 
   int mGeometryType;                                // same meaning as initType in constructor
   std::map<EGeoComponent, bool> mEnabledComponents; // map of the enabled state of all geometry components.
+  TGeoMatrix* mLeftTransformation;                  // transformation for the left part of the detector
+  TGeoMatrix* mRightTransformation;                 // transformation for the right part of the detector
 
   ClassDefNV(Geometry, 1);
 };
