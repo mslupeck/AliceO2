@@ -48,27 +48,27 @@ Geometry::Geometry(const Geometry& geometry)
 
 const int Geometry::getCurrentCellId(TVirtualMC* fMC)
 {
-  int ring = -1;
-  int sector = -1;
-  int half = -1;
+  int detectorHalfID = -1;
+  int sectorID = -1;
+  int ringID = -1;
 
-  fMC->CurrentVolOffID(0, ring);
-  fMC->CurrentVolOffID(1, sector);
-  fMC->CurrentVolOffID(2, half);
+  fMC->CurrentVolOffID(2, detectorHalfID);
+  fMC->CurrentVolOffID(1, sectorID);
+  fMC->CurrentVolOffID(0, ringID);  
 
-  sector = sector + half * 4;
+  sectorID += detectorHalfID * sNCellSectors;
 
   // // TODO: Remove (this is for debuging purposes during development only)
   // LOG(INFO) << "FV0 Geometry::getCurrentCellId():";
-  // LOG(INFO) << "Half id:     " << half;
+  // LOG(INFO) << "Half id:     " << detectorHalfID;
   // LOG(INFO) << "Half name:   " << fMC->CurrentVolOffName(2);
-  // LOG(INFO) << "Ring id:     " << ring;
-  // LOG(INFO) << "Ring name:   " << fMC->CurrentVolOffName(0);
-  // LOG(INFO) << "Sector id:   " << sector;
+  // LOG(INFO) << "Sector id:   " << sectorID;
   // LOG(INFO) << "Sector name: " << fMC->CurrentVolOffName(1);
-  // LOG(INFO) << "Cell id :    " << sector + 8 * ring << "\n";
+  // LOG(INFO) << "Ring id:     " << ringID;
+  // LOG(INFO) << "Ring name:   " << fMC->CurrentVolOffName(0);
+  // LOG(INFO) << "Cell id :    " << sectorID + 8 * ringID << "\n";
 
-  return sector + 8 * ring;
+  return sectorID + 8 * ringID;
 }
 
 bool Geometry::enableComponent(EGeoComponent component, bool enable)
@@ -1010,8 +1010,8 @@ void Geometry::assembleNonSensVols(TGeoVolume* vFV0)
 void Geometry::assembleScintSectors(TGeoVolume* vFV0)
 {
   TGeoVolumeAssembly* sectors = buildSectorAssembly(sScintName);
-  vFV0->AddNode(sectors, 0, mLeftTransformation);
-  vFV0->AddNode(sectors, 1, mRightTransformation);
+  vFV0->AddNode(sectors, 0, mRightTransformation);
+  vFV0->AddNode(sectors, 1, mLeftTransformation);
 }
 
 void Geometry::assemblePlasticSectors(TGeoVolume* vFV0)
@@ -1024,8 +1024,8 @@ void Geometry::assemblePlasticSectors(TGeoVolume* vFV0)
   TGeoMatrix* rightTrans = new TGeoHMatrix(*mRightTransformation);
   rightTrans->SetDz(rightTrans->GetTranslation()[2] + sZPlast);
 
-  vFV0->AddNode(sectors, 0, leftTrans);
-  vFV0->AddNode(sectors, 1, rightTrans);
+  vFV0->AddNode(sectors, 0, rightTrans);
+  vFV0->AddNode(sectors, 1, leftTrans);
 }
 
 void Geometry::assembleFibers(TGeoVolume* vFV0)
