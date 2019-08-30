@@ -8,8 +8,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file Geometry.h
-/// \brief Base definition of FV0+ geometry.
+/// \file   Geometry.h
+/// \brief  Base definition of FV0+ geometry.
 ///
 /// \author Maciej Slupecki, University of Jyvaskyla, Finland
 /// \author Andreas Molander, University of Helsinki, Finland
@@ -18,6 +18,7 @@
 #define ALICEO2_FV0_GEOMETRY_H_
 
 #include <vector>
+
 #include <TGeoMatrix.h>
 #include <TGeoVolume.h>
 #include <TVirtualMC.h>

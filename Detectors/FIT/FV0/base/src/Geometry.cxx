@@ -14,10 +14,10 @@
 /// \author Maciej Slupecki, University of Jyvaskyla, Finland
 /// \author Andreas Molander, University of Helsinki, Finland
 
-// #include <iomanip>
-#include "FV0Base/Geometry.h"
+#include <cmath>
 
 #include <FairLogger.h>
+
 #include <TGeoBBox.h>
 #include <TGeoCompositeShape.h>
 #include <TGeoCone.h>
@@ -27,8 +27,7 @@
 #include <TGeoTube.h>
 #include <TGeoVolume.h>
 
-// #include <cmath>
-// #include <sstream>
+#include "FV0Base/Geometry.h"
 
 ClassImp(o2::fv0::Geometry);
 

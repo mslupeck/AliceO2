@@ -8,21 +8,23 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file Detector.h
-/// \brief Definition of the Detector class
+/// \file   Detector.h
+/// \brief  Definition of the FV0+ detector class.
+///
+/// \author Maciej Slupecki, University of Jyvaskyla, Finland
+/// \author Andreas Molander, University of Helsinki, Finland
 
 #ifndef ALICEO2_FV0_DETECTOR_H_
 #define ALICEO2_FV0_DETECTOR_H_
 
 #include "TLorentzVector.h"
 
-#include "SimulationDataFormat/BaseHits.h"
-#include "DetectorsBase/Detector.h" // for Detector
-#include "FV0Base/Geometry.h"
 #include "DataFormatsFV0/Hit.h"
+#include "DetectorsBase/Detector.h"
+#include "FV0Base/Geometry.h"
+#include "SimulationDataFormat/BaseHits.h"
 
 class FairModule;
-
 class FairVolume;
 class TGeoVolume;
 class TGraph;
@@ -105,7 +107,7 @@ class Detector : public o2::base::DetImpl<Detector>
     Aluminium,
     Steel,
     Titanium
-  }; // media IDs used in createMaterials
+  }; // media IDs used in createMaterials()
 
  private:
   /// Container for hits
@@ -137,6 +139,7 @@ std::ostream& operator<<(std::ostream& os, Detector& source);
 std::istream& operator>>(std::istream& os, Detector& source);
 } // namespace fv0
 } // namespace o2
+
 #ifdef USESHM
 namespace o2
 {

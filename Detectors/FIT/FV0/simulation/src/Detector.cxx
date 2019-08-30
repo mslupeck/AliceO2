@@ -8,25 +8,29 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "TGeoManager.h" // for TGeoManager
-#include "TMath.h"
+/// \file   Detector.cxx
+/// \brief  Implementation of the FV0+ detector class.
+///
+/// \author Maciej Slupecki, University of Jyvaskyla, Finland
+/// \author Andreas Molander, University of Helsinki, Finland
+
+#include <sstream>
+
+#include "TGeoManager.h"
 #include "TGraph.h"
+#include "TLorentzVector.h"
+#include "TMath.h"
 #include "TString.h"
 #include "TSystem.h"
-#include "TVirtualMC.h"
 #include "TVector3.h"
-#include "TLorentzVector.h"
+#include "TVirtualMC.h"
 
-#include "FairRootManager.h" // for FairRootManager
 #include "FairLogger.h"
-#include "FairVolume.h"
-
 #include "FairRootManager.h"
 #include "FairVolume.h"
 
-#include <sstream>
-#include "FV0Simulation/Detector.h"
 #include "FV0Base/Geometry.h"
+#include "FV0Simulation/Detector.h"
 #include "SimulationDataFormat/Stack.h"
 
 using namespace o2::fv0;
@@ -138,16 +142,27 @@ Bool_t Detector::ProcessHits(FairVolume* v)
   return kTRUE;
 }
 
-o2::fv0::Hit* Detector::addHit(Int_t trackId, Int_t cellId,
-                               const Point3D<float>& startPos, const Point3D<float>& endPos,
-                               const Vector3D<float>& startMom, double startE,
-                               double endTime, double eLoss, Int_t particlePdg)
+void Detector::Register()
 {
+  // This will create a branch in the output tree called Hit, setting the last
+  // parameter to kFALSE means that this collection will not be written to the file,
+  // it will exist only during the simulation
 
-  mHits->emplace_back(trackId, cellId, startPos, endPos, startMom, startE, endTime, eLoss, particlePdg);
-  auto stack = (o2::data::Stack*)fMC->GetStack();
-  stack->addHit(GetDetId());
-  return &(mHits->back());
+  if (FairRootManager::Instance()) {
+    FairRootManager::Instance()->RegisterAny(addNameTo("Hit").data(), mHits, kTRUE);
+  }
+}
+
+void Detector::Reset()
+{
+  if (!o2::utils::ShmManager::Instance().isOperational()) {
+    mHits->clear();
+  }
+}
+
+void Detector::EndOfEvent()
+{
+  Reset();
 }
 
 // TODO: -> verify Todos inside the function
@@ -160,21 +175,21 @@ void Detector::createMaterials()
   Float_t aAir[nAir] = { 12.0107, 14.0067, 15.9994, 39.948 };
   Float_t zAir[nAir] = { 6, 7, 8, 18 };
   Float_t wAir[nAir] = { 0.000124, 0.755267, 0.231781, 0.012827 };
-  Float_t dAir = 0.00120479;
+  const Float_t dAir = 0.00120479;
 
   // Scintillator mixture; TODO: Looks very rough, improve these numbers?
   const Int_t nScint = 2;
   Float_t aScint[nScint] = { 1, 12.01 };
   Float_t zScint[nScint] = { 1, 6 };
   Float_t wScint[nScint] = { 0.016, 0.984 };
-  Float_t dScint = 1.023;
+  const Float_t dScint = 1.023;
 
   // Plastic mixture; TODO: Verify numbers, these are taken from the previous detector
   const Int_t nPlast = 3;
   Float_t aPlast[nPlast] = { 1, 12.01, 15.99 };
   Float_t zPlast[nPlast] = { 1, 6, 8 };
   Float_t wPlast[nPlast] = { 0.08, 0.32, 0.6 } ;
-  Float_t dPlast = 1.18;
+  const Float_t dPlast = 1.18;
 
   Float_t dFiberInner = 0.087;
   Float_t dFiberMiddle = 0.129;
@@ -186,17 +201,18 @@ void Detector::createMaterials()
   Float_t dAlu = 2.7;
 
   // Steel (taken from FDD)
+  const Int_t nSteel = 4;
   Float_t aSteel[4] = { 55.847, 51.9961, 58.6934, 28.0855 };
   Float_t zSteel[4] = { 26., 24., 28., 14. };
   Float_t wSteel[4] = { .715, .18, .1, .005 };
+  const Float_t dSteel = 7.88;
 
-  // Titanium TODO: Verify. This is Titanium grade 5 (https://en.wikipedia.org/wiki/Titanium_alloy)
-  // without iron and oxygen
+  // Titanium grade 5 (https://en.wikipedia.org/wiki/Titanium_alloy) without iron and oxygen
   const Int_t nTitanium = 3;
   Float_t aTitanium[nTitanium] = { 47.87, 26.98, 50.94 };
   Float_t zTitanium[nTitanium] = { 22, 13, 23 };
   Float_t wTitanium[nTitanium] = { 0.9, 0.06, 0.04 };
-  Float_t dTitanium = 4.42;
+  const Float_t dTitanium = 4.42;
 
   Int_t matId = 0;                  // tmp material id number
   const Int_t unsens = 0, sens = 1; // sensitive or unsensitive medium
@@ -246,7 +262,7 @@ void Detector::createMaterials()
                              stmin);
 
   // TODO: verify numbers, taken from FDD
-  o2::base::Detector::Mixture(++matId, "Stainless_Steel$", aSteel, zSteel, 7.88, 4, wSteel);
+  o2::base::Detector::Mixture(++matId, "Stainless_Steel$", aSteel, zSteel, dSteel, nSteel, wSteel);
   o2::base::Detector::Medium(Steel, "Stainless_Steel$", matId, unsens, fieldType, maxField, tmaxfd, stemax, deemax,
                              epsil, stmin);
 
@@ -271,25 +287,13 @@ void Detector::ConstructGeometry()
   mGeometry->buildGeometry();
 }
 
-void Detector::Register()
+o2::fv0::Hit* Detector::addHit(Int_t trackId, Int_t cellId,
+                               const Point3D<float>& startPos, const Point3D<float>& endPos,
+                               const Vector3D<float>& startMom, double startE,
+                               double endTime, double eLoss, Int_t particlePdg)
 {
-  // This will create a branch in the output tree called Hit, setting the last
-  // parameter to kFALSE means that this collection will not be written to the file,
-  // it will exist only during the simulation
-
-  if (FairRootManager::Instance()) {
-    FairRootManager::Instance()->RegisterAny(addNameTo("Hit").data(), mHits, kTRUE);
-  }
-}
-
-void Detector::EndOfEvent()
-{
-  Reset();
-}
-
-void Detector::Reset()
-{
-  if (!o2::utils::ShmManager::Instance().isOperational()) {
-    mHits->clear();
-  }
+  mHits->emplace_back(trackId, cellId, startPos, endPos, startMom, startE, endTime, eLoss, particlePdg);
+  auto stack = (o2::data::Stack*)fMC->GetStack();
+  stack->addHit(GetDetId());
+  return &(mHits->back());
 }
