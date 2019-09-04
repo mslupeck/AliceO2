@@ -14,23 +14,24 @@
 /// \author Maciej Slupecki, University of Jyvaskyla, Finland
 /// \author Andreas Molander, University of Helsinki, Finland
 
+#include "FV0Simulation/Detector.h"
+
 #include <sstream>
 
-#include "TGeoManager.h"
-#include "TGraph.h"
-#include "TLorentzVector.h"
-#include "TMath.h"
-#include "TString.h"
-#include "TSystem.h"
-#include "TVector3.h"
-#include "TVirtualMC.h"
+#include <TGeoManager.h>
+#include <TGraph.h>
+#include <TLorentzVector.h>
+#include <TMath.h>
+#include <TString.h>
+#include <TSystem.h>
+#include <TVector3.h>
+#include <TVirtualMC.h>
 
-#include "FairLogger.h"
-#include "FairRootManager.h"
-#include "FairVolume.h"
+#include <FairLogger.h>
+#include <FairRootManager.h>
+#include <FairVolume.h>
 
 #include "FV0Base/Geometry.h"
-#include "FV0Simulation/Detector.h"
 #include "SimulationDataFormat/Stack.h"
 
 using namespace o2::fv0;

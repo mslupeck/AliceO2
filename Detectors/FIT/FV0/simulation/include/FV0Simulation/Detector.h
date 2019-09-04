@@ -17,7 +17,7 @@
 #ifndef ALICEO2_FV0_DETECTOR_H_
 #define ALICEO2_FV0_DETECTOR_H_
 
-#include "TLorentzVector.h"
+#include <TLorentzVector.h>
 
 #include "DataFormatsFV0/Hit.h"
 #include "DetectorsBase/Detector.h"
@@ -54,7 +54,7 @@ class Detector : public o2::base::DetImpl<Detector>
   /// Constructor with on/off flag
   /// \param isActive  kTRUE for active detectors (ProcessHits() will be called),
   ///                  kFALSE for inactive detectors
-  Detector(Bool_t isActive);
+  explicit Detector(Bool_t isActive);
 
   /// Initializes the detector (adds sensitive volume)
   void InitializeO2Detector() override;

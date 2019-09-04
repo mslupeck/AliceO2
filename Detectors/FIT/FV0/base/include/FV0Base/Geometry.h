@@ -31,7 +31,8 @@ namespace fv0
 class Geometry
 {
  public:
-  /// Geometry type options possible to be initialized
+  /// Geometry type options possible to be initialized. The type of the geometry will specify which components are
+  /// created.
   enum EGeoType {
     eUninitilized,
     eDummy,
@@ -40,22 +41,24 @@ class Geometry
     eFull
   };
 
-  /// Geometry components possible to be enabled/disabled
+  /// Geometry components possible to be enabled/disabled. Only enabled components will be created.
   enum EGeoComponent {
     eScintillator,
     ePlastics,
     eFibers,
     eScrews,
     eRods,
-    eAluminiumContainer
+    eContainer
   };
 
   /// Default constructor.
   /// It must be kept public for root persistency purposes,
   /// but should never be called by the outside world
-  Geometry() { mGeometryType = eUninitilized; };
+  Geometry(): mGeometryType(eUninitilized)
+  {
+  };
 
-  // TODO: What does eDummy geometry type initialize?
+  // TODO: What should eDummy geometry type initialize?
 
   /// Standard constructor
   /// \param initType[in]  The type of geometry, that will be initialized
@@ -65,30 +68,34 @@ class Geometry
   ///                       -> initType == eRough         => sensitive parts and rough structural elements
   ///                       -> initType == eFull          => complete, detailed geometry (including screws, etc.)
   /// \return  -
-  Geometry(EGeoType initType);
+  explicit Geometry(EGeoType initType);
 
   /// Copy constructor.
   Geometry(const Geometry& geometry);
 
+  /// Destructor
+  ~Geometry();
+
   /// Get the unique ID of the current scintillator cell during simulation.
-  /// The ID is a number from 1 to 40 starting from the first cell left of the y-axis
-  /// and continues counterclockwise one ring at a time.
-  /// \param  fMC  The virtual Monte Carlo interface.
+  /// The ID is a number starting from 0 at the first cell right of the y-axis
+  /// and continues clockwise one ring at a time.
+  /// \param  fMC The virtual Monte Carlo interface.
   /// \return The ID of the current scintillator cell during simulation.
-  const int getCurrentCellId(TVirtualMC* fMC);
+  const int getCurrentCellId(const TVirtualMC* fMC) const;
 
   /// Get the names of all the sensitive volumes of the geometry.
-  const std::vector<std::string> getSensitiveVolumeNames() { return mSensitiveVolumeNames; };
+  /// \return The names of all the sensitive volumes of the geometry.
+  const std::vector<std::string> getSensitiveVolumeNames() const { return mSensitiveVolumeNames; };
 
   /// Enable or disable a geometry component. To be called before the geometry is built. A disabled component will not
   /// be added to the geometry. The enabled components are by default specified by the geometry type.
-  /// \param  component The geometry component to be enabled/disabled.
-  /// \param  enable  Boolean setting the enabled state. Default is true.
+  /// \param  component   The geometry component to be enabled/disabled.
+  /// \param  enable      Setting the enabled state. Default is true.
   /// \return The enabled state of the geometry component.
-  bool enableComponent(EGeoComponent component, bool enable = true);
+  const bool enableComponent(EGeoComponent component, bool enable = true);
 
   /// Build the geometry.
-  void buildGeometry();
+  void buildGeometry() const;
 
  private:
   inline static const std::string sDetectorName = "FV0";
@@ -102,13 +109,11 @@ class Geometry
   // TODO: Adjust the sZposition once the simulation geometry is implemented, T0 starts at 328
   // at sZGlobal==320, there is a gap (to be filled with fibers and support) of 8 cm between the plastic of FV0+ and aluminum covers of FT0+
   static constexpr float sZGlobal = 320 - sDzScint / 2;     // global z-position of the geometrical center of the sensitive parts of the detector
-  static constexpr float sGlobalPhiRotation = 0;            // global phi rotation (to enable making two detector halves, possible to separate vertically)
   static constexpr float sDxHalvesSeparation = 0;           // separation between the left and right side of the detector
-  static constexpr float sDyHalvesSeparation = 0;           // y-position of the right detector part relative to sYGlobal
-  static constexpr float sDzHalvesSeparation = 0;           // z-position of the right detector part relative to sZGlobal
+  static constexpr float sDyHalvesSeparation = 0;           // y-position of the right detector part relative to the left part
+  static constexpr float sDzHalvesSeparation = 0;           // z-position of the right detector part relative to the left part
 
   // Cell and scintillator constants
-  // static constexpr float sDySeparationScint = sDrSeparationScint;
   static constexpr int sNCellSectors = 4;                   // number of sectors for one half of the detector
   static constexpr int sNCellRings = 5;                     // number of rings
   static constexpr float sCellRingRadii[sNCellRings + 1] { 4.01, 7.3, 12.9, 21.25, 38.7, 72.115 }; // average ring radii
@@ -144,14 +149,15 @@ class Geometry
   static constexpr float sDyAluStandBottom = 2;             // thickness of aluminum stand bottom
 
   // Local position constants
-  static constexpr float sPosScint[] { sDxAluCover, 0, 0 };                                   // local position of the right half of the scintillator
-  static constexpr float sZPlast = sPosScint[2] + sDzScint / 2 + sDzPlast / 2;                // plastic z-position
-  static constexpr float sZAluBack = sPosScint[2] - sDzScint / 2 - sDzAluBack / 2;            // aluminium backplate z-position
+  static constexpr float sXScint = sDxAluCover;                                               // local position of the right half of the scintillator.
+  static constexpr float sZScint = 0;                                                         // z-positino of the scintillators
+  static constexpr float sZPlast = sZScint + sDzScint / 2 + sDzPlast / 2;                     // plastic z-position
+  static constexpr float sZAluBack = sZScint - sDzScint / 2 - sDzAluBack / 2;                 // aluminium backplate z-position
   static constexpr float sZAluFront = sZAluBack - sDzAluBack / 2 + sDzAlu - sDzAluFront / 2;  // aluminium frontplate z-position
   static constexpr float sZAluMid = (sZAluBack + sZAluFront) / 2;                             // middle z of aluminum container
   static constexpr float sZFiber = (sZPlast + sZAluFront) / 2;                                // fiber z-position (plastic and frontplate midpoint)
   static constexpr float sZCone = sZAluFront + sDzAluFront / 2 - sDzAluCone / 2;              // aluminium frontplate cone z-position
-  static constexpr float sXShiftScrews = sPosScint[0];                                         // x shift of all screw holes
+  static constexpr float sXShiftScrews = sXScint;                                             // x shift of all screw holes
 
   // Screw and rod dimensions
   static constexpr int sNScrewTypes = 6;                                                      // number of different screw types
@@ -252,7 +258,7 @@ class Geometry
   /// \param  zThicknes   The thickness of the cells.
   /// \param  medium      The medium of the cells.
   /// \param  isSensitive Specifies if the cells are sensitive volumes.
-  void initializeCells(std::string cellType, const float zThickness, TGeoMedium* medium, bool isSensitive);
+  void initializeCells(std::string cellType, const float zThickness, const TGeoMedium* medium, bool isSensitive);
 
   /// Initialize scintillator cell volumes.
   void initializeScintCells();
@@ -274,46 +280,46 @@ class Geometry
 
   /// Assemble the sensitive volumes.
   /// \param  vFV0  The FIT V0 volume.
-  void assembleSensVols(TGeoVolume* vFV0);
+  void assembleSensVols(TGeoVolume* vFV0) const;
 
-  /// Assemble the non sensitive volumes.
+  /// Assemble the nonsensitive volumes.
   /// \param  vFV0  The FIT V0 volume.
-  void assembleNonSensVols(TGeoVolume* vFV0);
+  void assembleNonSensVols(TGeoVolume* vFV0) const;
 
   /// Assemble the scintillator sectors.
   /// \param  vFV0  The FIT V0 volume.
-  void assembleScintSectors(TGeoVolume* vFV0);
+  void assembleScintSectors(TGeoVolume* vFV0) const;
 
   /// Assemble the plastice sectors.
   /// \param  vFV0  The FIT V0 volume.
-  void assemblePlasticSectors(TGeoVolume* vFV0);
+  void assemblePlasticSectors(TGeoVolume* vFV0) const;
 
   /// Assemble the optical fibers.
   /// \param  vFV0  The FIT V0 volume.
-  void assembleFibers(TGeoVolume* vFV0);
+  void assembleFibers(TGeoVolume* vFV0) const;
 
   /// Assemble the screwss.
   /// \param  vFV0  The FIT V0 volume.
-  void assembleScrews(TGeoVolume* vFV0);
+  void assembleScrews(TGeoVolume* vFV0) const;
 
   /// Assemble the rods.
   /// \param  vFV0  The FIT V0 volume.
-  void assembleRods(TGeoVolume* vFV0);
+  void assembleRods(TGeoVolume* vFV0) const;
 
   /// Assemble the metal container.
   /// \param  vFV0  The FIT V0 volume.
-  void assembleMetalContainer(TGeoVolume* vFV0);
+  void assembleMetalContainer(TGeoVolume* vFV0) const;
 
   /// Build sector assembly of specified type.
   /// \param  cellName  The type of the cells in the sector assembly.
   /// \return The sector assembly.
-  TGeoVolumeAssembly* buildSectorAssembly(std::string cellName);
+  TGeoVolumeAssembly* buildSectorAssembly(std::string cellName) const;
 
   /// Build a sector of specified type and number.
   /// \param  cellType  The type of the cells in the sector.
   /// \param  iSector   The numbering of the sector.
   /// \return The sector.
-  TGeoVolumeAssembly* buildSector(std::string cellType, int iSector);
+  TGeoVolumeAssembly* buildSector(std::string cellType, int iSector) const;
   
   /// Create the shape for a specified screw.
   /// \param  shapeName   The name of the shape.
@@ -322,7 +328,8 @@ class Geometry
   /// \param  yEpsilon    Shrinks or expands the y dimensions of the screw shape.
   /// \param  zEpsilon    Shrinks or expands the z dimensions of the screw shape.
   /// \return The screw shape.
-  TGeoShape* createScrewShape(std::string shapeName, int screwTypeID, float xEpsilon = 0, float yEpsilon = 0, float zEpsilon = 0);
+  TGeoShape* createScrewShape(std::string shapeName, int screwTypeID, float xEpsilon = 0, float yEpsilon = 0,
+                              float zEpsilon = 0) const;
 
   /// Create the shape for a specified rod.
   /// \param  shapeName The name of the shape.
@@ -331,16 +338,30 @@ class Geometry
   /// \param  yEpsilon  Shrinks or expands the y dimensions of the rod shape.
   /// \param  zEpsilon  Shrinks or expands the z dimensions of the rod shape.
   /// \return The rod shape.
-  TGeoShape* createRodShape(std::string shapeName, int rodTypeID, float xEpsilon = 0, float yEpsilon = 0, float zEpsilon = 0);
+  TGeoShape* createRodShape(std::string shapeName, int rodTypeID, float xEpsilon = 0, float yEpsilon = 0,
+                            float zEpsilon = 0) const;
 
   /// Helper function for creating and registering a TGeoTranslation.
-  TGeoTranslation* createAndRegisterTrans(std::string name, double dx = 0, double dy = 0, double dz = 0);
+  /// \param  name  The name of the translation.
+  /// \param  dx    Translation dx.
+  /// \param  dy    Translation dy.
+  /// \param  dz    Translation dz.
+  /// \return The newly created and registered TGeoTranslation.
+  TGeoTranslation* createAndRegisterTrans(std::string name, double dx = 0, double dy = 0, double dz = 0) const;
 
   /// Helper function for creating and registering a TGeoRotation.
-  TGeoRotation* createAndRegisterRot(std::string name, double phi = 0, double theta = 0, double psi = 0);
+  /// \param  name  The name of the rotation.
+  /// \param  dx    Translation phi.
+  /// \param  dy    Translation theta.
+  /// \param  dz    Translation psi.
+  /// \return The newly created and registered TGeoRotation.
+  TGeoRotation* createAndRegisterRot(std::string name, double phi = 0, double theta = 0, double psi = 0) const;
 
   /// Helper function for creating volume names.
-  std::string createVolumeName(std::string volumeType, int number = -1);
+  /// \param  volumeType  A string that will be included in the volume name.
+  /// \param  number      A number, e.g. an ID, that is included in the name. A negative number is omitted.
+  /// \return The volume name.
+  const std::string createVolumeName(std::string volumeType, int number = -1) const;
 
   std::vector<std::string> mSensitiveVolumeNames;   // The names of all the sensitive volumes
 
@@ -349,7 +370,7 @@ class Geometry
   std::vector<float> mRMaxScint;                    // outer radii of scintillator rings (.at(0) -> ring 1, .at(4) -> ring 5)
   std::vector<float> mRMinFiber;                    // inner radii of fiber volumes (.at(0) -> fiber 1)
   std::vector<float> mRMaxFiber;                    // outer radii of fiber volumes (.at(0) -> fiber 1)
-  std::vector<TGeoMedium*> mMediumFiber;            // Medium of the fiber volumes (.at(n) -> medium of fiber the n:th fiber starting from the middle)
+  std::vector<TGeoMedium*> mMediumFiber;            // medium of the fiber volumes (.at(n) -> medium of fiber the n:th fiber starting from the middle)
 
   std::vector<float> mRScrewAndRod;                 // radii of the screw and rod positions.
 
@@ -375,8 +396,8 @@ class Geometry
   std::vector<TGeoMedium*> mMediumScrewTypes;       // medium of the screw types
   std::vector<TGeoMedium*> mMediumRodTypes;         // medium of the rod types
 
-  int mGeometryType;                                // same meaning as initType in constructor
-  std::map<EGeoComponent, bool> mEnabledComponents; // map of the enabled state of all geometry components.
+  const int mGeometryType;                          // same meaning as initType in constructor
+  std::map<EGeoComponent, bool> mEnabledComponents; // map of the enabled state of all geometry components
   TGeoMatrix* mLeftTransformation;                  // transformation for the left part of the detector
   TGeoMatrix* mRightTransformation;                 // transformation for the right part of the detector
 
