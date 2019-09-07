@@ -101,96 +101,134 @@ class Geometry
   inline static const std::string sDetectorName = "FV0";
 
   // General geometry constants
-  static constexpr float sEpsilon = 0.01;                   // variable used to make sure one spatial dimension is infinitesimaly larger than the other
-  static constexpr float sDzScint = 4;                      // thickness of scintillator
-  static constexpr float sDzPlast = 1;                      // thickness of fiber plastic
-  static constexpr float sXGlobal = 0;                      // global x-position of the geometrical center of the sensitive parts of the detector
-  static constexpr float sYGlobal = 0;                      // global y-position of the geometrical center of the sensitive parts of the detector
+
+  /// Variable used to make sure one spatial dimension is infinitesimaly larger than the other.
+  static constexpr float sEpsilon = 0.01;
+  static constexpr float sDzScintillator = 4;     ///< Thickness of the scintillator
+  static constexpr float sDzPlastic = 1;          ///< Thickness of the fiber plastics
+  
+  static constexpr float sXGlobal = 0;            ///< Global x-position of the geometrical center of scintillators
+  static constexpr float sYGlobal = 0;            ///< Global y-position of the geometrical center of scintillators
   // TODO: Adjust the sZposition once the simulation geometry is implemented, T0 starts at 328
-  // at sZGlobal==320, there is a gap (to be filled with fibers and support) of 8 cm between the plastic of FV0+ and aluminum covers of FT0+
-  static constexpr float sZGlobal = 320 - sDzScint / 2;     // global z-position of the geometrical center of the sensitive parts of the detector
-  static constexpr float sDxHalvesSeparation = 0;           // separation between the left and right side of the detector
-  static constexpr float sDyHalvesSeparation = 0;           // y-position of the right detector part relative to the left part
-  static constexpr float sDzHalvesSeparation = 0;           // z-position of the right detector part relative to the left part
+  // at sZGlobal==320, there is a gap (to be filled with fibers and support) of 8 cm between the plastic of FV0+ and
+  // aluminum covers of FT0+
+  /// Global z-position of the geometrical center of the scintillators.
+  static constexpr float sZGlobal = 320 - sDzScintillator / 2;
+  static constexpr float sDxHalvesSeparation = 0; ///< Separation between the left and right side of the detector
+  static constexpr float sDyHalvesSeparation = 0; ///< y-position of the right detector part relative to the left part
+  static constexpr float sDzHalvesSeparation = 0; ///< z-position of the right detector part relative to the left part
 
   // Cell and scintillator constants
-  static constexpr int sNCellSectors = 4;                   // number of sectors for one half of the detector
-  static constexpr int sNCellRings = 5;                     // number of rings
-  static constexpr float sCellRingRadii[sNCellRings + 1] { 4.01, 7.3, 12.9, 21.25, 38.7, 72.115 }; // average ring radii
-  static constexpr char sCellTypes[sNCellSectors] { 'a', 'b', 'b', 'a'};  // ordered cell types per half a ring
-  static constexpr float sDrSeparationScint = 0.03 + 0.04;  // paint thickness + half of separation gap
+  static constexpr int sNumberOfCellSectors = 4; ///< Number of cell sectors for one half of the detector
+  static constexpr int sNumberOfCellRings = 5;   ///< Number of cell rings
+  /// Average cell ring radii.
+  static constexpr float sCellRingRadii[sNumberOfCellRings + 1] { 4.01, 7.3, 12.9, 21.25, 38.7, 72.115 };
+  static constexpr char sCellTypes[sNumberOfCellSectors] { 'a', 'b', 'b', 'a'};  ///< Ordered cell types per half a ring
+  /// Separation between the scintillator cells; paint thickness + half of separation gap.
+  static constexpr float sDrSeparationScint = 0.03 + 0.04;
   
-  static constexpr float sXShiftInnerRadiusScint = -0.15;   // shift of the inner radius origin of the scintillators
-  static constexpr float sDxHoleExtensionScint = 0.2;       // extension of the scintillator holes closest to the vertical aluminum cover
-  static constexpr float sDrHoleLargeScint = 0.415;         // radius of the large scintillator hole
-  static constexpr float sDrHoleSmallScint = 0.265;         // radius of the small scintillator hole
+  /// Shift of the inner radius origin of the scintillators.
+  static constexpr float sXShiftInnerRadiusScintillator = -0.15;
+  /// Extension of the scintillator holes for the metal rods
+  static constexpr float sDxHoleExtensionScintillator = 0.2;
+  static constexpr float sDrHoleSmallScintillator = 0.265;  ///< Radius of the small scintillator screw hole
+  static constexpr float sDrHoleLargeScintillator = 0.415;  ///< Radius of the large scintillator screw hole
 
   // Container constants
-  static constexpr float sDzAlu = 30;                       // depth of aluminium container
-  static constexpr float sDrAluHole = 4.05;                 // radius of beam hole
-  static constexpr float sXShiftAluHole = -0.15;            // shift of beam hole
-  static constexpr float sDrMaxAluBack = 83.1;              // outer radius of aluminium backplate
-  static constexpr float sDzAluBack = 1;                    // thickness of aluminium backplate
-  static constexpr float sDrMinAluFront = 45.7;             // inner radius of aluminium frontplate
-  static constexpr float sDrMaxAluFront = 83.1;             // outer radius of aluminium frontplate
-  static constexpr float sDzAluFront = 1;                   // thickness of aluminium frontplate
-  static constexpr float sDxAluStand = 40;                  // the width of the aluminium stand
-  static constexpr float sDyAluStand = 3;                   // the height of the aluminium stand at local x == 0
-  static constexpr float sDrMinAluCone = 24.3;              // inner radius at the bottom of aluminium cone
-  static constexpr float sDzAluCone = 16.2;                 // depth of alminium frontplate cone
-  static constexpr float sThicknessAluCone = 0.6;           // thickness of aluminium frontplate cone
-  static constexpr float sXYThicknessAluCone = 0.975;       // radial thickness in the xy-plane of the aluminium cone.
-  static constexpr float sDrMinAluOuterShield = 82.5;       // inner radius of outer aluminium shield
-  static constexpr float sDrMaxAluOuterShield = 82.65;      // outer radius of outer aluminium shield
-  static constexpr float sDrMinAluInnerShield = 4;          // inner radius of inner aluminium shield
-  static constexpr float sDrMaxAluInnerShield = 4.05;       // outer radius of inner aluminium shield
-  static constexpr float sDxAluCover = 0.15;                // thickness of aluminium cover
-  static constexpr float sDxAluStandBottom = 38.5;          // width of aluminum stand bottom
-  static constexpr float sDyAluStandBottom = 2;             // thickness of aluminum stand bottom
+  static constexpr float sDzContainer = 30;                   ///< Depth of the metal container
+  /// Radius of the beam hole in the metal container.
+  static constexpr float sDrContainerHole = 4.05;
+  static constexpr float sXShiftContainerHole = -0.15;        ///< x-shift of the beam hole in the metal container
+  static constexpr float sDrMaxContainerBack = 83.1;          ///< Outer radius of the container backplate
+  static constexpr float sDzContainerBack = 1;                ///< Thickness of the container backplate
+  static constexpr float sDrMinContainerFront = 45.7;         ///< Inner radius of the container frontplate
+  static constexpr float sDrMaxContainerFront = 83.1;         ///< Outer radius of the container frontplate
+  static constexpr float sDzContainerFront = 1;               ///< Thickness of the container frontplate
+  static constexpr float sDxContainerStand = 40;              ///< Width of the container stand
+  static constexpr float sDyContainerStand = 3;               ///< Height of the container stand at its center in x
+  /// Inner radius at the bottom of container frontplate cone.
+  static constexpr float sDrMinContainerCone = 24.3;
+  static constexpr float sDzContainerCone = 16.2;             ///< Depth of the container frontplate cone
+  static constexpr float sThicknessContainerCone = 0.6;       ///< Thickness of the container frontplate cone
+  /// Radial thickness in the xy-plane of the container cone.
+  static constexpr float sXYThicknessContainerCone = 0.975;
+  static constexpr float sDrMinContainerOuterShield = 82.5;   ///< Inner radius of outer container shield
+  static constexpr float sDrMaxContainerOuterShield = 82.65;  ///< Outer radius of outer container shield
+  static constexpr float sDrMinContainerInnerShield = 4;      /// Inner radius of the inner container shield
+  static constexpr float sDrMaxContainerInnerShield = 4.05;   ///< Outer radius of inner container shield
+  static constexpr float sDxContainerCover = 0.15;            ///< Thickness of the container cover
+  static constexpr float sDxContainerStandBottom = 38.5;      ///< Width of the bottom of the container stand
+  static constexpr float sDyContainerStandBottom = 2;         ///< Thickness of the bottom of the container stand
 
   // Local position constants
-  static constexpr float sXScint = sDxAluCover;                                               // local position of the right half of the scintillator.
-  static constexpr float sZScint = 0;                                                         // z-positino of the scintillators
-  static constexpr float sZPlast = sZScint + sDzScint / 2 + sDzPlast / 2;                     // plastic z-position
-  static constexpr float sZAluBack = sZScint - sDzScint / 2 - sDzAluBack / 2;                 // aluminium backplate z-position
-  static constexpr float sZAluFront = sZAluBack - sDzAluBack / 2 + sDzAlu - sDzAluFront / 2;  // aluminium frontplate z-position
-  static constexpr float sZAluMid = (sZAluBack + sZAluFront) / 2;                             // middle z of aluminum container
-  static constexpr float sZFiber = (sZPlast + sZAluFront) / 2;                                // fiber z-position (plastic and frontplate midpoint)
-  static constexpr float sZCone = sZAluFront + sDzAluFront / 2 - sDzAluCone / 2;              // aluminium frontplate cone z-position
-  static constexpr float sXShiftScrews = sXScint;                                             // x shift of all screw holes
+
+  /// x-position of the right half of the scintillator.
+  static constexpr float sXScintillator = sDxContainerCover;
+  /// z-position of the scintillator cells.
+  static constexpr float sZScintillator = 0;
+  /// z-position of the plastic cells.
+  static constexpr float sZPlastic = sZScintillator + sDzScintillator / 2 + sDzPlastic / 2;
+  /// z-position of the container backplate.
+  static constexpr float sZContainerBack = sZScintillator - sDzScintillator / 2 - sDzContainerBack / 2;
+  /// z-position of the container frontplate.
+  static constexpr float sZContainerFront = sZContainerBack - sDzContainerBack / 2 + sDzContainer
+                                            - sDzContainerFront / 2;
+  /// z-position of the center of the container.
+  static constexpr float sZContainerMid = (sZContainerBack + sZContainerFront) / 2;
+  /// z-position of the fiber volumes.
+  static constexpr float sZFiber = (sZPlastic + sZContainerFront) / 2;
+  /// z-position of the container frontplate cone.
+  static constexpr float sZCone = sZContainerFront + sDzContainerFront / 2 - sDzContainerCone / 2;
+  // x shift of all screw holes.
+  static constexpr float sXShiftScrews = sXScintillator;
 
   // Screw and rod dimensions
-  static constexpr int sNScrewTypes = 6;                                                      // number of different screw types
-  static constexpr float sDrMinScrewTypes[sNScrewTypes] { 0.25, 0.25, 0.4, 0.4, 0.4, 0.4 };   // radius of the thinner part of the screw types
-  static constexpr float sDrMaxScrewTypes[sNScrewTypes] { 0, 0.5, 0.6, 0.6, 0.6, 0};          // radius of the thicker part of the screw types
-  static constexpr float sDzMaxScrewTypes[sNScrewTypes] { 6.02, 13.09, 13.1, 23.1, 28.3, 5 }; // length of the thinner part of the screw types
-  static constexpr float sDzMinScrewTypes[sNScrewTypes] { 0, 6.78, 6.58, 15.98, 21.48, 0 };   // length of the thicker part of the screw types
-  static constexpr float sZShiftScrew = 0;                                                    // z shift of screws. 0 means they are aligned with the scintillator.
 
-  static constexpr int sNRodTypes = 4;
-  static constexpr float sDxMinRodTypes[sNRodTypes] { 0.366, 0.344, 0.344, 0.344 };           // width of the thinner part of the rod types
-  static constexpr float sDxMaxRodTypes[sNRodTypes] { 0.536, 0.566, 0.566, 0.716 };           // width of the thicker part of the rod types
-  static constexpr float sDyMinRodTypes[sNRodTypes] { 0.5, 0.8, 0.8, 0.8 };                   // height of the thinner part of the rod types
-  static constexpr float sDyMaxRodTypes[sNRodTypes] { 0.9, 1.2, 1.2, 1.2 };                   // height of the thicker part of the rod types
-  static constexpr float sDzMaxRodTypes[sNRodTypes] { 12.5, 12.5, 22.5, 27.7 };               // length of the thinner part of the rod types
-  static constexpr float sDzMinRodTypes[sNRodTypes] { 7.45, 7.45, 17.45, 22.65 };             // length of the thicker part of the rod types
-  static constexpr float sZShiftRod = -0.05;                                                  // z shift of rods. 0 means they are aligned with tht scintillators.
+  /// Number of the different screw types.
+  static constexpr int sNumberOfScrewTypes = 6;
+  /// Radii of the thinner part of the screw types.
+  static constexpr float sDrMinScrewTypes[sNumberOfScrewTypes] { 0.25, 0.25, 0.4, 0.4, 0.4, 0.4 };
+  /// Radii of the thicker part of the screw types.
+  static constexpr float sDrMaxScrewTypes[sNumberOfScrewTypes] { 0, 0.5, 0.6, 0.6, 0.6, 0};
+  /// Length of the thinner part of the screw types.
+  static constexpr float sDzMaxScrewTypes[sNumberOfScrewTypes] { 6.02, 13.09, 13.1, 23.1, 28.3, 5 };
+  /// Length of the thicker part of the screw types.
+  static constexpr float sDzMinScrewTypes[sNumberOfScrewTypes] { 0, 6.78, 6.58, 15.98, 21.48, 0 };
+  /// z shift of the screws. 0 means they are aligned with the scintillator.
+  static constexpr float sZShiftScrew = 0;
+
+  /// Number of the different rod types.
+  static constexpr int sNumberOfRodTypes = 4;
+  /// Width of the thinner part of the rod types.
+  static constexpr float sDxMinRodTypes[sNumberOfRodTypes] { 0.366, 0.344, 0.344, 0.344 };
+  /// Width of the thicker part of the rod types.
+  static constexpr float sDxMaxRodTypes[sNumberOfRodTypes] { 0.536, 0.566, 0.566, 0.716 };
+  /// Height of the thinner part of the rod types.
+  static constexpr float sDyMinRodTypes[sNumberOfRodTypes] { 0.5, 0.8, 0.8, 0.8 };
+  /// Height of the thicker part of the rod types.
+  static constexpr float sDyMaxRodTypes[sNumberOfRodTypes] { 0.9, 1.2, 1.2, 1.2 };
+  /// Length of the thinner part of the rod types.
+  static constexpr float sDzMaxRodTypes[sNumberOfRodTypes] { 12.5, 12.5, 22.5, 27.7 };
+  /// Length of the thicker part of the rod types.
+  static constexpr float sDzMinRodTypes[sNumberOfRodTypes] { 7.45, 7.45, 17.45, 22.65 };
+  /// z shift of the rods. 0 means they are aligned with tht scintillators.
+  static constexpr float sZShiftRod = -0.05;
 
   // Strings for volume names etc.
-  inline static const std::string sScintName = "SCINT";
-  inline static const std::string sPlastName = "PLAST";
+  inline static const std::string sScintillatorName = "SCINT";
+  inline static const std::string sPlasticName = "PLAST";
   inline static const std::string sSectorName = "SECTOR";
   inline static const std::string sCellName = "CELL";
-  inline static const std::string sScintSectorName = sScintName + sSectorName;
-  inline static const std::string sScintCellName = sScintName + sCellName;
-  inline static const std::string sPlastSectorName = sPlastName + sSectorName;
-  inline static const std::string sPlastCellName = sPlastName + sCellName;
+  inline static const std::string sScintillatorSectorName = sScintillatorName + sSectorName;
+  inline static const std::string sScintillatorCellName = sScintillatorName + sCellName;
+  inline static const std::string sPlasticSectorName = sPlasticName + sSectorName;
+  inline static const std::string sPlasticCellName = sPlasticName + sCellName;
   inline static const std::string sFiberName = "FIBER";
   inline static const std::string sScrewName = "SCREW";
   inline static const std::string sScrewHolesCSName = "FV0SCREWHOLES";
   inline static const std::string sRodName = "ROD";
   inline static const std::string sRodHolesCSName = "FV0RODHOLES";
-  inline static const std::string sContainerName = "ALUCONTAINER";
+  inline static const std::string sContainerName = "CONTAINER";
 
   /// Initialize the geometry.
   void initializeGeometry();
@@ -363,43 +401,49 @@ class Geometry
   /// \return The volume name.
   const std::string createVolumeName(std::string volumeType, int number = -1) const;
 
-  std::vector<std::string> mSensitiveVolumeNames;   // The names of all the sensitive volumes
+  std::vector<std::string> mSensitiveVolumeNames;   ///< The names of all the sensitive volumes
 
-  std::vector<float> mRAvgRing;                     // average ring radii (index 0 -> ring 1 min, index 1 -> ring 1 max and ring 2 min, ... index 5 -> ring 5 max)
-  std::vector<float> mRMinScint;                    // inner radii of scintillator rings (.at(0) -> ring 1, .at(4) -> ring 5)
-  std::vector<float> mRMaxScint;                    // outer radii of scintillator rings (.at(0) -> ring 1, .at(4) -> ring 5)
-  std::vector<float> mRMinFiber;                    // inner radii of fiber volumes (.at(0) -> fiber 1)
-  std::vector<float> mRMaxFiber;                    // outer radii of fiber volumes (.at(0) -> fiber 1)
-  std::vector<TGeoMedium*> mMediumFiber;            // medium of the fiber volumes (.at(n) -> medium of fiber the n:th fiber starting from the middle)
+  /// Average ring radii
+  ///
+  /// index 0 -> ring 1 min, index 1 -> ring 1 max and ring 2 min, ... index 5 -> ring 5 max
+  std::vector<float> mRAvgRing;                     
+  std::vector<float> mRMinScintillator;   ///< Inner radii of scintillator rings (.at(0) -> ring 1, .at(4) -> ring 5)
+  std::vector<float> mRMaxScintillator;   ///< Outer radii of scintillator rings (.at(0) -> ring 1, .at(4) -> ring 5)
+  std::vector<float> mRMinFiber;          ///< Inner radii of fiber volumes (.at(0) -> fiber 1)
+  std::vector<float> mRMaxFiber;          ///< Outer radii of fiber volumes (.at(0) -> fiber 1)
+  /// Medium of the fiber volumes
+  ///
+  /// .at(n) -> medium of fiber the n:th fiber starting from the middle.
+  std::vector<TGeoMedium*> mMediumFiber;
 
-  std::vector<float> mRScrewAndRod;                 // radii of the screw and rod positions.
+  std::vector<float> mRScrewAndRod;           ///< Radii of the screw and rod positions
 
-  std::vector<float> mDrMinScrews;                  // radii of the thinner part of the screws
-  std::vector<float> mDrMaxScrews;                  // radii of the thicker part of the screws
-  std::vector<float> mDzMaxScrews;                  // length of the thinner part of the screws
-  std::vector<float> mDzMinScrews;                  // length of the thicker part of the screws
+  std::vector<float> mDrMinScrews;            ///< Radii of the thinner part of the screws
+  std::vector<float> mDrMaxScrews;            ///< Radii of the thicker part of the screws
+  std::vector<float> mDzMaxScrews;            ///< Length of the thinner part of the screws
+  std::vector<float> mDzMinScrews;            ///< Length of the thicker part of the screws
   
-  std::vector<float> mRScrews;                      // radial distance to the screw locations
-  std::vector<int> mScrewTypeIDs;                   // the type ID of each screw (.at(n) -> type ID of screw no. n)
+  std::vector<float> mRScrews;                ///< Radial distance to the screw locations
+  std::vector<int> mScrewTypeIDs;             ///< The type ID of each screw (.at(n) -> type ID of screw no. n)
 
-  std::vector<float> mDxMinRods;                    // width of the thinner part of the rods
-  std::vector<float> mDxMaxRods;                    // width of the thicker part of the rods
-  std::vector<float> mDyMinRods;                    // height of the thinner part of the rods
-  std::vector<float> mDyMaxRods;                    // height of the thicker part of the rods
-  std::vector<float> mDzMaxRods;                    // length of the thinner part of the rods
-  std::vector<float> mDzMinRods;                    // length of the thicker part of the rods
-  std::vector<int> mRodTypeIDs;                     // the type ID of each rod (.at(n) -> type ID of rod no. n)
+  std::vector<float> mDxMinRods;              ///< Width of the thinner part of the rods
+  std::vector<float> mDxMaxRods;              ///< Width of the thicker part of the rods
+  std::vector<float> mDyMinRods;              ///< Height of the thinner part of the rods
+  std::vector<float> mDyMaxRods;              ///< Height of the thicker part of the rods
+  std::vector<float> mDzMaxRods;              ///< Length of the thinner part of the rods
+  std::vector<float> mDzMinRods;              ///< Length of the thicker part of the rods
+  std::vector<int> mRodTypeIDs;               ///< The type ID of each rod (.at(n) -> type ID of rod no. n)
 
-  std::vector<TGeoMatrix*> mSectorTrans;            // transformations of sectors (.at(0) -> sector 1)
-  std::vector<std::vector<float>> mScrewPos;        // xyz-coordinates of all the screws
-  std::vector<std::vector<float>> mRodPos;          // xyz-coordinates of all the rods
-  std::vector<TGeoMedium*> mMediumScrewTypes;       // medium of the screw types
-  std::vector<TGeoMedium*> mMediumRodTypes;         // medium of the rod types
+  std::vector<TGeoMatrix*> mSectorTrans;      ///< Transformations of sectors (.at(0) -> sector 1)
+  std::vector<std::vector<float>> mScrewPos;  ///< xyz-coordinates of all the screws
+  std::vector<std::vector<float>> mRodPos;    ///< xyz-coordinates of all the rods
+  std::vector<TGeoMedium*> mMediumScrewTypes; ///< Medium of the screw types
+  std::vector<TGeoMedium*> mMediumRodTypes;   ///< Medium of the rod types
 
-  const int mGeometryType;                          // same meaning as initType in constructor
-  std::map<EGeoComponent, bool> mEnabledComponents; // map of the enabled state of all geometry components
-  TGeoMatrix* mLeftTransformation;                  // transformation for the left part of the detector
-  TGeoMatrix* mRightTransformation;                 // transformation for the right part of the detector
+  const int mGeometryType;                          ///< The type of the geometry.
+  std::map<EGeoComponent, bool> mEnabledComponents; ///< Map of the enabled state of all geometry components
+  TGeoMatrix* mLeftTransformation;                  ///< Transformation for the left part of the detector
+  TGeoMatrix* mRightTransformation;                 ///< Transformation for the right part of the detector
 
   ClassDefNV(Geometry, 1);
 };

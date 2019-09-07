@@ -63,7 +63,7 @@ const int Geometry::getCurrentCellId(const TVirtualMC* fMC) const
   fMC->CurrentVolOffID(1, sectorID);
   fMC->CurrentVolOffID(0, ringID);  
 
-  sectorID += detectorHalfID * sNCellSectors;
+  sectorID += detectorHalfID * sNumberOfCellSectors;
 
   // // TODO: Remove (this is for debuging purposes during development only)
   // LOG(INFO) << "FV0 Geometry::getCurrentCellId():";
@@ -143,36 +143,29 @@ void Geometry::initializeVectors()
 void Geometry::initializeCellRingRadii()
 {
   // Index of mRAvgRing is NOT linked directly to any ring number
-  mRAvgRing.assign(sCellRingRadii, sCellRingRadii + sNCellRings + 1);
+  mRAvgRing.assign(sCellRingRadii, sCellRingRadii + sNumberOfCellRings + 1);
 
   // Set real scintillator radii (reduced by paint thickness and separation gap)
   for (int i = 0; i < mRAvgRing.size() - 1; ++i) {
-    mRMinScint.push_back(mRAvgRing[i] + sDrSeparationScint);
-    mRMaxScint.push_back(mRAvgRing[i + 1] - sDrSeparationScint);
+    mRMinScintillator.push_back(mRAvgRing[i] + sDrSeparationScint);
+    mRMaxScintillator.push_back(mRAvgRing[i + 1] - sDrSeparationScint);
   }
   // Now indices of mRMinScint and mRMaxScint correspond to the same ring
 }
 
 void Geometry::initializeSectorTransformations()
 {
-  for (int iSector = 0; iSector < sNCellSectors; ++iSector) {
-    // iSector = 1 corresponds to the first sector clockwise from the y-axis
-    // iSector = 2 corresponds to the next sector in clockwise direction and so on
+  for (int iSector = 0; iSector < sNumberOfCellSectors; ++iSector) {
+    // iSector = 0 corresponds to the first sector clockwise from the y-axis
+    // iSector = 1 corresponds to the next sector in clockwise direction and so on
 
     TGeoRotation* trans = createAndRegisterRot(sDetectorName + sSectorName + std::to_string(iSector) + "TRANS");
 
-    // The reference to "a" and "b" can be understood with the CAD drawings of the detector.
-    switch (iSector)
-    {
-      case 2: {} // "b"-mirror
-      case 3: {
-        // "a"-mirror
-        trans->ReflectY(true);
-        break;
-      }
-      default: {
-        break;
-      }
+    
+    if (iSector == 2 || iSector == 3) {
+      // "a" and "b" mirrors.
+      // The reference to "a" and "b" can be understood with the CAD drawings of the detector.
+      trans->ReflectY(true);
     }
 
     mSectorTrans.push_back(trans);
@@ -182,12 +175,12 @@ void Geometry::initializeSectorTransformations()
 void Geometry::initializeFiberVolumeRadii()
 {
   mRMinFiber.push_back(0);
-  mRMinFiber.push_back(sDrMinAluCone + sEpsilon);
-  mRMinFiber.push_back(sDrMinAluFront + sEpsilon);
+  mRMinFiber.push_back(sDrMinContainerCone + sEpsilon);
+  mRMinFiber.push_back(sDrMinContainerFront + sEpsilon);
 
-  mRMaxFiber.push_back(sDrMinAluCone);
-  mRMaxFiber.push_back(sDrMinAluFront);
-  mRMaxFiber.push_back(mRMaxScint.back());
+  mRMaxFiber.push_back(sDrMinContainerCone);
+  mRMaxFiber.push_back(sDrMinContainerFront);
+  mRMaxFiber.push_back(mRMaxScintillator.back());
 }
 
 void Geometry::initializeFiberMedium()
@@ -211,7 +204,7 @@ void Geometry::initializeScrewAndRodRadii()
 void Geometry::initializeScrewTypeMedium()
 {
   TGeoMedium* medium = gGeoManager->GetMedium("FV0_Titanium$");
-  for (int i = 0; i < sNScrewTypes; ++i) {
+  for (int i = 0; i < sNumberOfScrewTypes; ++i) {
     mMediumScrewTypes.push_back(medium);
   }
 }
@@ -219,7 +212,7 @@ void Geometry::initializeScrewTypeMedium()
 void Geometry::initializeRodTypeMedium()
 {
   TGeoMedium* medium = gGeoManager->GetMedium("FV0_Aluminium$");
-  for (int i = 0; i < sNRodTypes; ++i) {
+  for (int i = 0; i < sNumberOfRodTypes; ++i) {
     mMediumRodTypes.push_back(medium);
   }
 }
@@ -229,7 +222,8 @@ void Geometry::addScrewProperties(const int screwTypeID, const int iRing, const 
   mScrewTypeIDs.push_back(screwTypeID);
   mScrewPos.push_back(std::vector<float> { cosf(phi * M_PI/180) * r,
                                            sinf(phi * M_PI/180) * r,
-                                           sZScint - sDzScint / 2 + sZShiftScrew + sDzMaxScrewTypes[screwTypeID] / 2 });
+                                           sZScintillator - sDzScintillator / 2 + sZShiftScrew
+                                           + sDzMaxScrewTypes[screwTypeID] / 2 });
   mDrMinScrews.push_back(sDrMinScrewTypes[screwTypeID]);
   mDrMaxScrews.push_back(sDrMaxScrewTypes[screwTypeID]);
   mDzMaxScrews.push_back(sDzMaxScrewTypes[screwTypeID]);
@@ -240,7 +234,8 @@ void Geometry::addRodProperties(const int rodTypeID, const int iRing) {
   mRodTypeIDs.push_back(rodTypeID);
   mRodPos.push_back(std::vector<float>{ sDxMinRodTypes[rodTypeID] / 2,
                                         mRScrewAndRod[iRing],
-                                        sZScint - sDzScint / 2 + sZShiftRod + sDzMaxRodTypes[rodTypeID] / 2 });
+                                        sZScintillator - sDzScintillator / 2 + sZShiftRod
+                                        + sDzMaxRodTypes[rodTypeID] / 2 });
   mDxMinRods.push_back(sDxMinRodTypes[rodTypeID]);
   mDzMaxRods.push_back(sDxMaxRodTypes[rodTypeID]);
   mDyMinRods.push_back(sDyMinRodTypes[rodTypeID]);
@@ -251,7 +246,8 @@ void Geometry::addRodProperties(const int rodTypeID, const int iRing) {
   mRodTypeIDs.push_back(rodTypeID);
   mRodPos.push_back(std::vector<float>{ sDxMinRodTypes[rodTypeID] / 2,
                                         -mRScrewAndRod[iRing],
-                                        sZScint - sDzScint / 2 + sZShiftRod + sDzMaxRodTypes[rodTypeID] / 2 });
+                                        sZScintillator - sDzScintillator / 2 + sZShiftRod
+                                        + sDzMaxRodTypes[rodTypeID] / 2 });
   mDxMinRods.push_back(sDxMinRodTypes[rodTypeID]);
   mDzMaxRods.push_back(sDxMaxRodTypes[rodTypeID]);
   mDyMinRods.push_back(sDyMinRodTypes[rodTypeID]);
@@ -378,12 +374,12 @@ void Geometry::initializeCells(const std::string cellType, const float zThicknes
   //
   // The reference to "a" and "b" can be understood with the CAD drawings of the detector.
 
-  const float dxHoleCut = sDxHoleExtensionScint;           // width of extension of hole 1, 2 and 7 in the "a" cell
-  const float xHole = sDrSeparationScint + dxHoleCut;      // x-placement of holes 1, 2 and 7 in the "a" cell
+  const float dxHoleCut = sDxHoleExtensionScintillator;     // width of extension of hole 1, 2 and 7 in the "a" cell
+  const float xHole = sDrSeparationScint + dxHoleCut;       // x-placement of holes 1, 2 and 7 in the "a" cell
 
   // Sector separation gap shape
   const std::string secSepShapeName = "FV0_" + cellType + "SectorSeparation";
-  new TGeoBBox(secSepShapeName.c_str(), mRMaxScint.back() + sEpsilon, sDrSeparationScint, zThickness / 2);
+  new TGeoBBox(secSepShapeName.c_str(), mRMaxScintillator.back() + sEpsilon, sDrSeparationScint, zThickness / 2);
 
   // Sector separation gap rotations
   const std::string secSepRot45Name = "FV0_" + cellType + "SecSepRot45";
@@ -398,12 +394,12 @@ void Geometry::initializeCells(const std::string cellType, const float zThicknes
   const std::string holeSmallCutName = "FV0_" + cellType + "HoleSmallCut";
   const std::string holeLargeCutName = "FV0_" + cellType + "HoleLargeCut";
 
-  new TGeoTube(holeSmallName.c_str(), 0, sDrHoleSmallScint, zThickness / 2);
-  new TGeoTube(holeLargeName.c_str(), 0, sDrHoleLargeScint, zThickness / 2);
-  new TGeoBBox(holeSmallCutName.c_str(), dxHoleCut, sDrHoleSmallScint, zThickness / 2);
-  new TGeoBBox(holeLargeCutName.c_str(), dxHoleCut, sDrHoleLargeScint, zThickness / 2);
+  new TGeoTube(holeSmallName.c_str(), 0, sDrHoleSmallScintillator, zThickness / 2);
+  new TGeoTube(holeLargeName.c_str(), 0, sDrHoleLargeScintillator, zThickness / 2);
+  new TGeoBBox(holeSmallCutName.c_str(), dxHoleCut, sDrHoleSmallScintillator, zThickness / 2);
+  new TGeoBBox(holeLargeCutName.c_str(), dxHoleCut, sDrHoleLargeScintillator, zThickness / 2);
 
-  for (int ir = 0; ir < sNCellRings; ++ir) {
+  for (int ir = 0; ir < sNumberOfCellRings; ++ir) {
     // Radii without separation
     const float rMin = mRAvgRing[ir];
     const float rMax = mRAvgRing[ir + 1];
@@ -415,12 +411,22 @@ void Geometry::initializeCells(const std::string cellType, const float zThicknes
     //
     // y
     // ^
-    // |  * * *
-    // |  * a * *
-    // |  * * *
-    // |  * *
+    // |  1******
+    // |  ************5
+    // |  7*****************
+    // |  *********************3
+    // |  *******************
+    // |  2**************8
+    // |      6********
+    // |        **4
     // |
-    // 0--------------> x
+    // |
+    // |  O
+    // ------------------------> x
+    //
+    // * = cell volume
+    // numbers = hole numbers (as numbered in the code below)
+    // O = beam pipe
 
     const std::string aCellName = createVolumeName(cellType + sCellName + "a", ir);
 
@@ -434,17 +440,17 @@ void Geometry::initializeCells(const std::string cellType, const float zThicknes
       const std::string a1CellShapeHoleCutName = aCellShapeName + "HoleCut";
       const std::string a1CellShapeHoleCutTransName = a1CellShapeHoleCutName + "Trans";
 
-      new TGeoTubeSeg(a1CellShapeFullName.c_str(), 0, mRMaxScint[ir], zThickness / 2 - sEpsilon, 45, 90);
-      new TGeoTube(a1CellShapeHoleCutName.c_str(), 0, mRMinScint[ir], zThickness);
+      new TGeoTubeSeg(a1CellShapeFullName.c_str(), 0, mRMaxScintillator[ir], zThickness / 2 - sEpsilon, 45, 90);
+      new TGeoTube(a1CellShapeHoleCutName.c_str(), 0, mRMinScintillator[ir], zThickness);
 
-      createAndRegisterTrans(a1CellShapeHoleCutTransName, sXShiftInnerRadiusScint, 0, 0);
+      createAndRegisterTrans(a1CellShapeHoleCutTransName, sXShiftInnerRadiusScintillator, 0, 0);
 
       const std::string a1BoolFormula = a1CellShapeFullName + "-" + a1CellShapeHoleCutName + ":"
                                         + a1CellShapeHoleCutTransName;
       new TGeoCompositeShape(aCellShapeName.c_str(), a1BoolFormula.c_str());
     } else {
       // The rest of the "a"-type cells
-      new TGeoTubeSeg(aCellShapeName.c_str(), mRMinScint[ir], mRMaxScint[ir], zThickness / 2, 45, 90);
+      new TGeoTubeSeg(aCellShapeName.c_str(), mRMinScintillator[ir], mRMaxScintillator[ir], zThickness / 2, 45, 90);
     }
 
     // Translations for screw holes (inner = rmin, halt-length = rmid, outer = rmax)
@@ -529,19 +535,27 @@ void Geometry::initializeCells(const std::string cellType, const float zThicknes
     // Cell volume
     const TGeoVolume* aCell = new TGeoVolume(aCellName.c_str(), aCellCs, medium);
 
-    // "b"-type cells
+    // "b"-type cell
     //
     // Initial placement:
     //
     // y
     // ^
+    // |                    1
+    // |                 *****
+    // |               *********
+    // |            7*************
+    // |          ****************5
+    // |        2*******************
+    // |           6*****************
+    // |            *****************
+    // |  O          4*******8******3
     // |
-    // |        *
-    // |      * * *
-    // |    * * b * *
-    // |      * * * *
-    // |
-    // 0--------------> x
+    // ------------------------------> x
+    //
+    // * = cell volume
+    // numbers = number of holes (as numbered in the code below)
+    // O = beam pipe
 
     const std::string bCellName = createVolumeName(cellType + sCellName + "b", ir);
 
@@ -555,17 +569,17 @@ void Geometry::initializeCells(const std::string cellType, const float zThicknes
       const std::string b1CellShapeHoleCutName = bCellShapeName + "Cut";
       const std::string b1CellShapeHoleCutTransName = b1CellShapeHoleCutName + "Trans";
 
-      new TGeoTubeSeg(b1CellShapeFullName.c_str(), 0, mRMaxScint[ir], zThickness / 2 - sEpsilon, 0, 45);
-      new TGeoTube(b1CellShapeHoleCutName.c_str(), 0, mRMinScint[ir], zThickness);
+      new TGeoTubeSeg(b1CellShapeFullName.c_str(), 0, mRMaxScintillator[ir], zThickness / 2 - sEpsilon, 0, 45);
+      new TGeoTube(b1CellShapeHoleCutName.c_str(), 0, mRMinScintillator[ir], zThickness);
 
-      createAndRegisterTrans(b1CellShapeHoleCutTransName, sXShiftInnerRadiusScint, 0, 0);
+      createAndRegisterTrans(b1CellShapeHoleCutTransName, sXShiftInnerRadiusScintillator, 0, 0);
 
       const std::string b1BoolFormula = b1CellShapeFullName + "-" + b1CellShapeHoleCutName + ":"
                                         + b1CellShapeHoleCutTransName;
       new TGeoCompositeShape(bCellShapeName.c_str(), b1BoolFormula.c_str());
     } else {
       // The rest of the "b"-type cells
-      new TGeoTubeSeg(bCellShapeName.c_str(), mRMinScint[ir], mRMaxScint[ir], zThickness / 2, 0, 45);
+      new TGeoTubeSeg(bCellShapeName.c_str(), mRMinScintillator[ir], mRMaxScintillator[ir], zThickness / 2, 0, 45);
     }
 
     // Translations for holes
@@ -648,19 +662,20 @@ void Geometry::initializeCells(const std::string cellType, const float zThicknes
 void Geometry::initializeScintCells()
 {
   const TGeoMedium* medium = gGeoManager->GetMedium("FV0_Scintillator$");
-  initializeCells(sScintName, sDzScint, medium, true);
+  initializeCells(sScintillatorName, sDzScintillator, medium, true);
 }
 
 void Geometry::initializePlasticCells()
 {
   const TGeoMedium* medium = gGeoManager->GetMedium("FV0_Plastic$");
-  initializeCells(sPlastName, sDzPlast, medium, false);
+  initializeCells(sPlasticName, sDzPlastic, medium, false);
 }
 
 void Geometry::initializeFibers()
 {
   // depth of the fiber volumes
-  const float dzFibers = sDzAlu - sDzAluBack - sDzAluFront - sDzScint - sDzPlast - 2 * sEpsilon;
+  const float dzFibers = sDzContainer - sDzContainerBack - sDzContainerFront - sDzScintillator - sDzPlastic
+                         - 2 * sEpsilon;
 
   const std::string fiberName = "FV0_Fibers"; // No volume with this name
 
@@ -673,13 +688,13 @@ void Geometry::initializeFibers()
   const std::string fiberHoleCutTransName = fiberHoleCutName + "Trans";
 
   new TGeoBBox(fiberSepCutName.c_str(), sDrSeparationScint, mRMaxFiber.back() + sEpsilon, dzFibers / 2 + sEpsilon );
-  new TGeoConeSeg(fiberConeCutName.c_str(), sDzAluCone / 2 + sEpsilon, 0,
-                  sDrMinAluCone + sXYThicknessAluCone + sEpsilon, 0, sDrMinAluFront + sEpsilon, -90, 90);
-  new TGeoTube(fiberHoleCutName.c_str(), 0, mRMinScint.front(), dzFibers / 2 + sEpsilon);
+  new TGeoConeSeg(fiberConeCutName.c_str(), sDzContainerCone / 2 + sEpsilon, 0,
+                  sDrMinContainerCone + sXYThicknessContainerCone + sEpsilon, 0, sDrMinContainerFront + sEpsilon, -90, 90);
+  new TGeoTube(fiberHoleCutName.c_str(), 0, mRMinScintillator.front(), dzFibers / 2 + sEpsilon);
 
-  createAndRegisterTrans(fiberTransName, sXScint , 0, sZFiber);
-  createAndRegisterTrans(fiberConeCutTransName, sXScint, 0, sZCone);
-  createAndRegisterTrans(fiberHoleCutTransName, sXScint + sXShiftInnerRadiusScint, 0, sZFiber);
+  createAndRegisterTrans(fiberTransName, sXScintillator, 0, sZFiber);
+  createAndRegisterTrans(fiberConeCutTransName, sXScintillator, 0, sZCone);
+  createAndRegisterTrans(fiberHoleCutTransName, sXScintillator + sXShiftInnerRadiusScintillator, 0, sZFiber);
 
   for (int i = 0; i < mRMinFiber.size(); ++i) {
     const std::string fiberShapeName = fiberName + std::to_string(i + 1);
@@ -710,7 +725,7 @@ void Geometry::initializeFibers()
 
 void Geometry::initializeScrews()
 {
-  for (int i = 0; i < sNScrewTypes; ++i) {
+  for (int i = 0; i < sNumberOfScrewTypes; ++i) {
     const std::string screwName = createVolumeName(sScrewName, i);
     const TGeoShape* screwShape = createScrewShape(screwName + "Shape", i, 0, 0, 0);
 
@@ -721,7 +736,7 @@ void Geometry::initializeScrews()
 
 void Geometry::initializeRods()
 {
-  for (int i = 0; i < sNRodTypes; ++i) {
+  for (int i = 0; i < sNumberOfRodTypes; ++i) {
     const std::string rodName = createVolumeName(sRodName, i);
     const TGeoShape* rodShape = createRodShape(rodName + "Shape", i, -sEpsilon, -sEpsilon);
 
@@ -746,13 +761,15 @@ void Geometry::initializeMetalContainer()
   const std::string backPlateStandTransName = backPlateStandName + "Trans"; // shift of the backplate stand
   const std::string backPlateHoleTransName = backPlateHoleName + "Trans";   // shift of the backplate inner radius
 
-  new TGeoTubeSeg(backPlateName.c_str(), 0, sDrMaxAluBack, sDzAluBack / 2, -90, 90);
-  new TGeoBBox(backPlateStandName.c_str(), sDxAluStand / 2, (sDrMaxAluBack + sDyAluStand) / 2, sDzAluBack / 2);
-  new TGeoTubeSeg(backPlateHoleName.c_str(), 0, sDrAluHole, sDzAluBack / 2, -90, 90);
-  new TGeoBBox(backPlateHoleCutName.c_str(), -sXShiftAluHole, sDrAluHole, sDzAluBack);
+  new TGeoTubeSeg(backPlateName.c_str(), 0, sDrMaxContainerBack, sDzContainerBack / 2, -90, 90);
+  new TGeoBBox(backPlateStandName.c_str(), sDxContainerStand / 2, (sDrMaxContainerBack + sDyContainerStand) / 2,
+               sDzContainerBack / 2);
+  new TGeoTubeSeg(backPlateHoleName.c_str(), 0, sDrContainerHole, sDzContainerBack / 2, -90, 90);
+  new TGeoBBox(backPlateHoleCutName.c_str(), -sXShiftContainerHole, sDrContainerHole, sDzContainerBack);
 
-  createAndRegisterTrans(backPlateStandTransName, sDxAluStand / 2, - (sDrMaxAluBack + sDyAluStand) / 2, 0);
-  createAndRegisterTrans(backPlateHoleTransName, sXShiftAluHole, 0, 0);
+  createAndRegisterTrans(backPlateStandTransName, sDxContainerStand / 2,
+                         - (sDrMaxContainerBack + sDyContainerStand) / 2, 0);
+  createAndRegisterTrans(backPlateHoleTransName, sXShiftContainerHole, 0, 0);
 
   // Backplate composite shape
   std::string backPlateBoolFormula = "";
@@ -765,23 +782,27 @@ void Geometry::initializeMetalContainer()
   const std::string backPlateCSTransName = backPlateCSName + "Trans";
 
   new TGeoCompositeShape(backPlateCSName.c_str(), backPlateBoolFormula.c_str());
-  createAndRegisterTrans(backPlateCSTransName, 0, 0, sZAluBack);
+  createAndRegisterTrans(backPlateCSTransName, 0, 0, sZContainerBack);
 
   // Frontplate
-  const float zPosFrontPlate = sZAluFront;                                                    // the z-position o the frontplate
-  const float dyFrontPlateStand = sDyAluStand + (sDrMaxAluFront - sDrMinAluFront) / 2;        // the height of the total stand overlapping with the rest of the plate
-  const float yPosFrontPlateStand = -sDrMaxAluFront - sDyAluStand + dyFrontPlateStand / 2;    // the y-position of the total stand
+
+  // the z-position o the frontplate
+  const float zPosFrontPlate = sZContainerFront;
+  // the height of the total stand overlapping with the rest of the plate
+  const float dyFrontPlateStand = sDyContainerStand + (sDrMaxContainerFront - sDrMinContainerFront) / 2;
+  // the y-position of the total stand
+  const float yPosFrontPlateStand = -sDrMaxContainerFront - sDyContainerStand + dyFrontPlateStand / 2;
 
   const std::string frontPlateName = "FV0_FrontPlate";
   const std::string frontPlateStandName = frontPlateName + "Stand";
   const std::string frontPlateTransName = frontPlateName + "Trans";
   const std::string frontPlateStandTransName = frontPlateStandName + "Trans";
 
-  new TGeoTubeSeg(frontPlateName.c_str(), sDrMinAluFront, sDrMaxAluFront, sDzAluFront / 2 , -90, 90);
-  new TGeoBBox(frontPlateStandName.c_str(), sDxAluStand / 2, dyFrontPlateStand / 2, sDzAluBack / 2);
+  new TGeoTubeSeg(frontPlateName.c_str(), sDrMinContainerFront, sDrMaxContainerFront, sDzContainerFront / 2 , -90, 90);
+  new TGeoBBox(frontPlateStandName.c_str(), sDxContainerStand / 2, dyFrontPlateStand / 2, sDzContainerBack / 2);
 
   createAndRegisterTrans(frontPlateTransName, 0, 0, zPosFrontPlate);
-  createAndRegisterTrans(frontPlateStandTransName, sDxAluStand / 2, yPosFrontPlateStand, 0);
+  createAndRegisterTrans(frontPlateStandTransName, sDxContainerStand / 2, yPosFrontPlateStand, 0);
 
   // Frontplate cone composite shape
   std::string frontPlateBoolFormula = "";
@@ -793,23 +814,30 @@ void Geometry::initializeMetalContainer()
   new TGeoCompositeShape(frontPlateCSName.c_str(), frontPlateBoolFormula.c_str());
 
   // Frontplate cone
-  const float thicknessFrontPlateCone = sXYThicknessAluCone;      // radial thickness of frontplate cone in the xy-plane
-  const float zPosCone = sDzAluFront / 2 - sDzAluCone / 2;       // z-position of the frontplate cone relative to the frontplate
+
+  // radial thickness of frontplate cone in the xy-plane
+  const float thicknessFrontPlateCone = sXYThicknessContainerCone;
+  // z-position of the frontplate cone relative to the frontplate
+  const float zPosCone = sDzContainerFront / 2 - sDzContainerCone / 2;
 
   const std::string frontPlateConeName = "FV0_FrontPlateCone";                            // no volume with this name
   const std::string frontPlateConeShieldName = frontPlateConeName + "Shield";             // the "sides" of the cone
   const std::string frontPlateConeShieldTransName = frontPlateConeShieldName + "Trans";
 
-  new TGeoConeSeg(frontPlateConeShieldName.c_str(), sDzAluCone / 2, sDrMinAluCone,
-                  sDrMinAluCone + thicknessFrontPlateCone, sDrMinAluFront - thicknessFrontPlateCone, sDrMinAluFront,
+  new TGeoConeSeg(frontPlateConeShieldName.c_str(), sDzContainerCone / 2, sDrMinContainerCone,
+                  sDrMinContainerCone + thicknessFrontPlateCone, sDrMinContainerFront - thicknessFrontPlateCone,
+                  sDrMinContainerFront,
                   -90, 90);
   createAndRegisterTrans(frontPlateConeShieldTransName, 0, 0, zPosCone);
 
   // Frontplate cone "bottom"
-  const float zPosConePlate = sDzAluFront / 2 - sDzAluCone + thicknessFrontPlateCone / 2;   // z-position of the cone bottom relative to the frontplate
-  const std::string frontPlateConePlateName = frontPlateConeName + "Plate";                  // the bottom of the cone
 
-  new TGeoTubeSeg(frontPlateConePlateName.c_str(), 0, sDrMinAluCone + thicknessFrontPlateCone,
+  // z-position of the cone bottom relative to the frontplate
+  const float zPosConePlate = sDzContainerFront / 2 - sDzContainerCone + thicknessFrontPlateCone / 2;
+  // the bottom of the cone
+  const std::string frontPlateConePlateName = frontPlateConeName + "Plate";
+
+  new TGeoTubeSeg(frontPlateConePlateName.c_str(), 0, sDrMinContainerCone + thicknessFrontPlateCone,
                   thicknessFrontPlateCone / 2, -90, 90);
 
   // Frontplate cone bottom composite shape
@@ -831,27 +859,28 @@ void Geometry::initializeMetalContainer()
   new TGeoCompositeShape(frontPlateConeCSName.c_str(), frontPlateConeCSBoolFormula.c_str());
 
   // Shields
-  const float dzShieldGap = 0.7;                      // z-distance between the shields and the front- and backplate outer edges (in z-direction)
-  const float dzShield = sDzAlu - 2 * dzShieldGap;    // depth of the shields
+  const float dzShieldGap = 0.7;                            // z-distance between the shields and the front- and backplate outer edges (in z-direction)
+  const float dzShield = sDzContainer - 2 * dzShieldGap;    // depth of the shields
 
   // Outer shield
-  const float zPosOuterShield = (sZAluBack + sZAluFront) / 2;   // z-position of the outer shield
+  const float zPosOuterShield = (sZContainerBack + sZContainerFront) / 2;   // z-position of the outer shield
 
   const std::string outerShieldName = "FV0_OuterShield";
   const std::string outerShieldTransName = outerShieldName + "Trans";
 
-  new TGeoTubeSeg(outerShieldName.c_str(), sDrMinAluOuterShield, sDrMaxAluOuterShield, dzShield / 2, -90, 90);
+  new TGeoTubeSeg(outerShieldName.c_str(), sDrMinContainerOuterShield, sDrMaxContainerOuterShield, dzShield / 2, -90,
+                  90);
   createAndRegisterTrans(outerShieldTransName, 0, 0, zPosOuterShield);
 
   // Inner shield
-  const float dzInnerShield = sDzAlu - sDzAluCone - dzShieldGap;                              // depth of the inner shield
-  const float zPosInnerShield = sZAluBack - sDzAluBack / 2 + dzShieldGap + dzInnerShield / 2; // z-position of the inner shield relative to the backplate
+  const float dzInnerShield = sDzContainer - sDzContainerCone - dzShieldGap;                              // depth of the inner shield
+  const float zPosInnerShield = sZContainerBack - sDzContainerBack / 2 + dzShieldGap + dzInnerShield / 2; // z-position of the inner shield relative to the backplate
 
   const std::string innerShieldName = "FV0_InnerShield";
   const std::string innerShieldCutName = innerShieldName + "Cut";
 
-  new TGeoTubeSeg(innerShieldName.c_str(), sDrMinAluInnerShield, sDrMaxAluInnerShield, dzInnerShield / 2, -90, 90);
-  new TGeoBBox(innerShieldCutName.c_str(), fabs(sXShiftAluHole), sDrMaxAluInnerShield, dzInnerShield / 2);
+  new TGeoTubeSeg(innerShieldName.c_str(), sDrMinContainerInnerShield, sDrMaxContainerInnerShield, dzInnerShield / 2, -90, 90);
+  new TGeoBBox(innerShieldCutName.c_str(), fabs(sXShiftContainerHole), sDrMaxContainerInnerShield, dzInnerShield / 2);
 
   // Inner shield composite shape
   std::string innerShieldCSBoolFormula;
@@ -861,27 +890,28 @@ void Geometry::initializeMetalContainer()
   const std::string innerShieldCSName = innerShieldName + "CS";
   const std::string innerShieldCSTransName = innerShieldCSName + "Trans";
   new TGeoCompositeShape(innerShieldCSName.c_str(), innerShieldCSBoolFormula.c_str());
-  createAndRegisterTrans(innerShieldCSTransName, sXShiftAluHole, 0, zPosInnerShield);
+  createAndRegisterTrans(innerShieldCSTransName, sXShiftContainerHole, 0, zPosInnerShield);
 
   // Cover
-  const float dzCover = sDzAlu;                             // Depth of the covers
+  const float dzCover = sDzContainer;                             // Depth of the covers
   const float zPosCoverConeCut = zPosFrontPlate + zPosCone; // Set the cone cut relative to the frontplate so that the exact position of the aluminium cone part can be used.
 
   const std::string coverName = "FV0_Cover";
   const std::string coverConeCutName = coverName + "ConeCut";
   const std::string coverHoleCutName = coverName + "HoleCut";
 
-  new TGeoBBox(coverName.c_str(), sDxAluCover / 2, sDrMaxAluOuterShield, dzCover / 2);
-  new TGeoCone(coverConeCutName.c_str(), sDzAluCone / 2, 0, sDrMinAluCone + thicknessFrontPlateCone, 0, sDrMinAluFront);
-  new TGeoTubeSeg(coverHoleCutName.c_str(), 0, sDrMinAluInnerShield, dzCover / 2, 0, 360);
+  new TGeoBBox(coverName.c_str(), sDxContainerCover / 2, sDrMaxContainerOuterShield, dzCover / 2);
+  new TGeoCone(coverConeCutName.c_str(), sDzContainerCone / 2, 0, sDrMinContainerCone + thicknessFrontPlateCone, 0,
+               sDrMinContainerFront);
+  new TGeoTubeSeg(coverHoleCutName.c_str(), 0, sDrMinContainerInnerShield, dzCover / 2, 0, 360);
 
   const std::string coverTransName = coverName + "Trans";
   const std::string coverConeCutTransName = coverConeCutName + "Trans";
   const std::string coverHoleCutTransName = coverHoleCutName + "Trans";
 
-  createAndRegisterTrans(coverTransName, sDxAluCover / 2, 0, zPosOuterShield);
+  createAndRegisterTrans(coverTransName, sDxContainerCover / 2, 0, zPosOuterShield);
   createAndRegisterTrans(coverConeCutTransName, 0, 0, zPosCoverConeCut);
-  createAndRegisterTrans(coverHoleCutTransName.c_str(), sXShiftAluHole, 0, zPosOuterShield);
+  createAndRegisterTrans(coverHoleCutTransName.c_str(), sXShiftContainerHole, 0, zPosOuterShield);
 
   // Cover composite shape
   std::string coverCSBoolFormula = "";
@@ -893,7 +923,7 @@ void Geometry::initializeMetalContainer()
   new TGeoCompositeShape(coverCSName.c_str(), coverCSBoolFormula.c_str());
 
   // Stand bottom
-  const float dzStandBottom = sDzAlu - sDzAluBack - sDzAluFront;
+  const float dzStandBottom = sDzContainer - sDzContainerBack - sDzContainerFront;
   const float dyStandBottomGap = 0.5;                             // This bottom part is not vertically aligned with the "front and backplate stands"
   const float dxStandBottomHole = 9.4;
   const float dzStandBottomHole = 20.4;
@@ -902,8 +932,9 @@ void Geometry::initializeMetalContainer()
   const std::string standName = "FV0_StandBottom";
   const std::string standHoleName = standName + "Hole";
 
-  new TGeoBBox(standName.c_str(), sDxAluStandBottom / 2, sDyAluStandBottom / 2, dzStandBottom / 2);
-  new TGeoBBox(standHoleName.c_str(), dxStandBottomHole / 2, sDyAluStandBottom / 2 + sEpsilon, dzStandBottomHole / 2);
+  new TGeoBBox(standName.c_str(), sDxContainerStandBottom / 2, sDyContainerStandBottom / 2, dzStandBottom / 2);
+  new TGeoBBox(standHoleName.c_str(), dxStandBottomHole / 2, sDyContainerStandBottom / 2 + sEpsilon,
+               dzStandBottomHole / 2);
 
   const std::string standHoleTrans1Name = standHoleName + "Trans1";
   const std::string standHoleTrans2Name = standHoleName + "Trans2";
@@ -927,9 +958,9 @@ void Geometry::initializeMetalContainer()
   const std::string standCSTransName = standCSName + "Trans";
 
   createAndRegisterTrans(standCSTransName.c_str(),
-                        sDxAluStand - sDxAluStandBottom / 2,
-                        -(sDrMaxAluBack + sDyAluStand) + sDyAluStandBottom / 2 + dyStandBottomGap,
-                        sZAluMid);
+                        sDxContainerStand - sDxContainerStandBottom / 2,
+                        -(sDrMaxContainerBack + sDyContainerStand) + sDyContainerStandBottom / 2 + dyStandBottomGap,
+                        sZContainerMid);
 
   // Composite shape
   std::string boolFormula = "";
@@ -980,21 +1011,21 @@ void Geometry::assembleNonSensVols(TGeoVolume* vFV0) const
 
 void Geometry::assembleScintSectors(TGeoVolume* vFV0) const
 {
-  TGeoVolumeAssembly* sectors = buildSectorAssembly(sScintName);
+  TGeoVolumeAssembly* sectors = buildSectorAssembly(sScintillatorName);
   vFV0->AddNode(sectors, 0, mRightTransformation);
   vFV0->AddNode(sectors, 1, mLeftTransformation);
 }
 
 void Geometry::assemblePlasticSectors(TGeoVolume* vFV0) const
 {
-  TGeoVolumeAssembly* sectors = buildSectorAssembly(sPlastName);
+  TGeoVolumeAssembly* sectors = buildSectorAssembly(sPlasticName);
   
   // Move the plastic cells next to the scintillator cells
   TGeoHMatrix* leftTrans = new TGeoHMatrix(*mLeftTransformation);
-  leftTrans->SetDz(leftTrans->GetTranslation()[2] + sZPlast);
+  leftTrans->SetDz(leftTrans->GetTranslation()[2] + sZPlastic);
 
   TGeoMatrix* rightTrans = new TGeoHMatrix(*mRightTransformation);
-  rightTrans->SetDz(rightTrans->GetTranslation()[2] + sZPlast);
+  rightTrans->SetDz(rightTrans->GetTranslation()[2] + sZPlastic);
 
   vFV0->AddNode(sectors, 0, rightTrans);
   vFV0->AddNode(sectors, 1, leftTrans);
@@ -1082,14 +1113,14 @@ TGeoVolumeAssembly* Geometry::buildSector(const std::string cellType, const int 
 {
   TGeoVolumeAssembly* sector = new TGeoVolumeAssembly(createVolumeName(cellType + sSectorName, iSector).c_str());
 
-  for (int i = 0; i < sNCellRings; ++i) {
+  for (int i = 0; i < sNumberOfCellRings; ++i) {
     TGeoVolume* cell = gGeoManager->GetVolume(createVolumeName(cellType + sCellName + sCellTypes[iSector], i).c_str());
 
     if (!cell) {
       LOG(WARNING) << "FV0 Geometry::buildSector(): Couldn't find cell volume no. " << i;
     } else {
       // TODO: add this translation somewhere else
-      sector->AddNode(cell, i, new TGeoTranslation(sXScint, 0, 0));
+      sector->AddNode(cell, i, new TGeoTranslation(sXScintillator, 0, 0));
     }
   }
 
@@ -1109,7 +1140,7 @@ TGeoShape* Geometry::createScrewShape(const std::string shapeName, const int scr
 
   const TGeoTube* thinPart = new TGeoTube(thinPartName.c_str(), 0, sDrMinScrewTypes[screwTypeID] + xyEpsilon, dzMax);
   const TGeoTube* thickPart = new TGeoTube(thickPartName.c_str(), 0, sDrMaxScrewTypes[screwTypeID] + xyEpsilon, dzMin);
-  createAndRegisterTrans(thickPartTransName, 0, 0, -dzMax - sZShiftScrew + sDzScint + sDzPlast + dzMin);
+  createAndRegisterTrans(thickPartTransName, 0, 0, -dzMax - sZShiftScrew + sDzScintillator + sDzPlastic + dzMin);
 
   std::string boolFormula = thinPartName;
   boolFormula += "+" + thickPartName + ":" + thickPartTransName;
@@ -1134,7 +1165,8 @@ TGeoShape* Geometry::createRodShape(const std::string shapeName, const int rodTy
 
   const TGeoBBox* thinPart = new TGeoBBox(thinPartName.c_str(), dxMin, dyMin, dzMax);
   const TGeoBBox* thickPart = new TGeoBBox(thickPartName.c_str(), dxMax, dyMax, dzMin);
-  createAndRegisterTrans(thickPartTransName, dxMax - dxMin, 0, -dzMax - sZShiftRod + sDzScint + sDzPlast + dzMin);
+  createAndRegisterTrans(thickPartTransName, dxMax - dxMin, 0,
+                         -dzMax - sZShiftRod + sDzScintillator + sDzPlastic + dzMin);
 
   std::string boolFormula = thinPartName;
   boolFormula += "+" + thickPartName + ":" + thickPartTransName;
