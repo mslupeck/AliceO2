@@ -40,6 +40,11 @@
 #include "FITDigitizerSpec.h"
 #include "FITDigitWriterSpec.h"
 
+// for FV0
+#include "FV0DigitizerSpec.h"
+#include "FV0DigitWriterSpec.h"
+
+
 // for FDD
 #include "FDDDigitizerSpec.h"
 #include "FDDDigitWriterSpec.h"
@@ -417,6 +422,18 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     // connect the FIT digit writer
     specs.emplace_back(o2::fit::getFT0DigitWriterSpec());
   }
+    
+    
+    // the FV0 part
+    if (isEnabled(o2::detectors::DetID::FV0)) {
+        detList.emplace_back(o2::detectors::DetID::FV0);
+        // connect the FV0 digitization
+        specs.emplace_back(o2::fv0::getFV0DigitizerSpec(fanoutsize++));
+        // connect the FV0 digit writer
+        specs.emplace_back(o2::fv0::getFV0DigitWriterSpec());
+        
+    }
+
 
   // the EMCal part
   if (isEnabled(o2::detectors::DetID::EMC)) {
