@@ -66,7 +66,7 @@ void Digitizer::process(const std::vector<o2::fv0::Hit>* hits, o2::fv0::Digit* d
         Int_t const  pmt = hit.GetDetectorID();
        // LOG(INFO)<<"pmt ========="<< pmt;
         Double_t const hitValue = hit.GetHitValue()*1000;//convert to MeV
-        //if (hitValue < 6.0) continue;
+        if (hitValue < 6.0) continue;
         Double_t const nPhoton = hitValue*10400;
         Int_t const nPhE = SimulateLightYield(pmt,nPhoton);
         Float_t const dt_scintillator = gRandom->Gaus(0, parameters.mIntTimeRes);

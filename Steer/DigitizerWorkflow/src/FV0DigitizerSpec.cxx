@@ -131,7 +131,6 @@ namespace o2
                         // copy digits into accumulator
 
                     }
-
                 }
 
                 // here we have all digits and we can send them to consumer (aka snapshot it onto output)
