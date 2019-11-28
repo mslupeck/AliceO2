@@ -7,21 +7,23 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+#ifndef O2_FRAMEWORK_BASICOPS_H_
+#define O2_FRAMEWORK_BASICOPS_H_
 
-#ifndef STEER_DIGITIZERWORKFLOW_FITDIGITIZER_H_
-#define STEER_DIGITIZERWORKFLOW_FITDIGITIZER_H_
-
-#include "Framework/DataProcessorSpec.h"
-
-namespace o2
+namespace o2::framework
 {
-namespace fit
-{
+enum BasicOp : unsigned int {
+  LogicalAnd,
+  LogicalOr,
+  Addition,
+  Subtraction,
+  Division,
+  LessThan,
+  LessThanOrEqual,
+  GreaterThan,
+  GreaterThanOrEqual,
+  Equal
+};
+} // namespace o2::framework
 
-o2::framework::DataProcessorSpec getFT0DigitizerSpec(int channel);
-//o2::framework::DataProcessorSpec getFV0DigitizerSpec(int channel);
-
-} // end namespace fit
-} // end namespace o2
-
-#endif /* STEER_DIGITIZERWORKFLOW_FITDIGITIZER_H_ */
+#endif // O2_FRAMEWORK_BASICOPS_H_

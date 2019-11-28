@@ -10,7 +10,7 @@
 #ifndef O2_FRAMEWORK_EXPRESSIONS_H_
 #define O2_FRAMEWORK_EXPRESSIONS_H_
 
-#include "Framework/Kernels.h"
+#include "Framework/BasicOps.h"
 
 #include <variant>
 #include <string>
@@ -19,7 +19,7 @@
 namespace o2::framework::expressions
 {
 
-/// A helper type for an expression tree node corresponding to a literal value
+/// An expression tree node corresponding to a literal value
 struct LiteralNode {
   template <typename T>
   LiteralNode(T v) : value{v}
@@ -37,38 +37,10 @@ struct BindingNode {
   std::string name;
 };
 
-/// A helper type for an expression tree node corresponding to binary operation
+/// An expression tree node corresponding to binary operation
 struct BinaryOpNode {
-  enum Op : unsigned int {
-    LogicalAnd,
-    LogicalOr,
-    Addition,
-    Subtraction,
-    Division,
-    LessThan,
-    LessThanOrEqual,
-    GreaterThan,
-    GreaterThanOrEqual,
-    Equal
-  };
-  BinaryOpNode(Op op_) : op{op_} {}
-  Op op;
-};
-
-struct ArrowDatumSpec {
-  // datum spec either contains an index, a value of a literal or a binding label
-  std::variant<std::monostate, size_t, LiteralNode::var_t, std::string> datum;
-  explicit ArrowDatumSpec(size_t index) : datum{index} {}
-  explicit ArrowDatumSpec(LiteralNode::var_t literal) : datum{literal} {}
-  explicit ArrowDatumSpec(std::string binding) : datum{binding} {}
-  ArrowDatumSpec() : datum{std::monostate{}} {}
-};
-
-struct ArrowKernelSpec {
-  std::unique_ptr<arrow::compute::OpKernel> kernel = nullptr;
-  ArrowDatumSpec left;
-  ArrowDatumSpec right;
-  ArrowDatumSpec result;
+  BinaryOpNode(BasicOp op_) : op{op_} {}
+  BasicOp op;
 };
 
 /// A generic tree node
@@ -102,41 +74,41 @@ struct Node {
 template <typename T>
 inline Node operator>(Node left, T rightValue)
 {
-  return Node{BinaryOpNode{BinaryOpNode::GreaterThan}, std::move(left), LiteralNode{rightValue}};
+  return Node{BinaryOpNode{BasicOp::GreaterThan}, std::move(left), LiteralNode{rightValue}};
 }
 
 template <typename T>
 inline Node operator<(Node left, T rightValue)
 {
-  return Node{BinaryOpNode{BinaryOpNode::LessThan}, std::move(left), LiteralNode{rightValue}};
+  return Node{BinaryOpNode{BasicOp::LessThan}, std::move(left), LiteralNode{rightValue}};
 }
 
 template <typename T>
 inline Node operator>=(Node left, T rightValue)
 {
-  return Node{BinaryOpNode{BinaryOpNode::GreaterThanOrEqual}, std::move(left), LiteralNode{rightValue}};
+  return Node{BinaryOpNode{BasicOp::GreaterThanOrEqual}, std::move(left), LiteralNode{rightValue}};
 }
 
 template <typename T>
 inline Node operator<=(Node left, T rightValue)
 {
-  return Node{BinaryOpNode{BinaryOpNode::LessThanOrEqual}, std::move(left), LiteralNode{rightValue}};
+  return Node{BinaryOpNode{BasicOp::LessThanOrEqual}, std::move(left), LiteralNode{rightValue}};
 }
 
 template <typename T>
 inline Node operator==(Node left, T rightValue)
 {
-  return Node{BinaryOpNode{BinaryOpNode::Equal}, std::move(left), LiteralNode{rightValue}};
+  return Node{BinaryOpNode{BasicOp::Equal}, std::move(left), LiteralNode{rightValue}};
 }
 
 inline Node operator&&(Node left, Node right)
 {
-  return Node{BinaryOpNode{BinaryOpNode::LogicalAnd}, std::move(left), std::move(right)};
+  return Node{BinaryOpNode{BasicOp::LogicalAnd}, std::move(left), std::move(right)};
 }
 
 inline Node operator||(Node left, Node right)
 {
-  return Node{BinaryOpNode{BinaryOpNode::LogicalOr}, std::move(left), std::move(right)};
+  return Node{BinaryOpNode{BasicOp::LogicalOr}, std::move(left), std::move(right)};
 }
 
 /// A struct, containing the root of the expression tree
@@ -145,7 +117,6 @@ struct Filter {
 
   std::unique_ptr<Node> node;
 };
-
 } // namespace o2::framework::expressions
 
 #endif // O2_FRAMEWORK_EXPRESSIONS_H_

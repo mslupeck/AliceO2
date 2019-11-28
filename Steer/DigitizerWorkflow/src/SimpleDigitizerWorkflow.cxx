@@ -37,8 +37,8 @@
 #include "TOFDigitWriterSpec.h"
 
 // for FIT
-#include "FITDigitizerSpec.h"
-#include "FITDigitWriterSpec.h"
+#include "FT0DigitizerSpec.h"
+#include "FT0DigitWriterSpec.h"
 
 // for FV0
 #include "FV0DigitizerSpec.h"
@@ -418,9 +418,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   if (isEnabled(o2::detectors::DetID::FT0)) {
     detList.emplace_back(o2::detectors::DetID::FT0);
     // connect the FIT digitization
-    specs.emplace_back(o2::fit::getFT0DigitizerSpec(fanoutsize++));
+    specs.emplace_back(o2::ft0::getFT0DigitizerSpec(fanoutsize++));
     // connect the FIT digit writer
-    specs.emplace_back(o2::fit::getFT0DigitWriterSpec());
+    specs.emplace_back(o2::ft0::getFT0DigitWriterSpec());
   }
     
     

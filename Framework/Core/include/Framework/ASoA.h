@@ -13,6 +13,7 @@
 
 #include "Framework/FunctionalHelpers.h"
 #include "Framework/CompilerBuiltins.h"
+#include "Framework/TypeTraits.h"
 #include "Framework/Traits.h"
 #include "Framework/Expressions.h"
 #include <arrow/table.h>
@@ -88,7 +89,7 @@ struct Flat {
 /// FIXME: the ChunkingPolicy for now is fixed to Flat and is a mere boolean
 /// which is used to switch off slow "chunking aware" parts. This is ok for
 /// now, but most likely we should move the whole chunk navigation logic there.
-template <typename T, typename ChunkingPolicy = Flat>
+template <typename T, typename ChunkingPolicy = Chunked>
 class ColumnIterator : ChunkingPolicy
 {
  public:
@@ -118,20 +119,22 @@ class ColumnIterator : ChunkingPolicy
   /// Move the iterator to the next chunk.
   void nextChunk() const
   {
-    mCurrentChunk++;
     auto chunks = mColumn->data();
+    auto previousArray = std::static_pointer_cast<arrow_array_for_t<T>>(chunks->chunk(mCurrentChunk));
+    mFirstIndex += previousArray->length();
+    mCurrentChunk++;
     auto array = std::static_pointer_cast<arrow_array_for_t<T>>(chunks->chunk(mCurrentChunk));
-    mFirstIndex += array->length();
     mCurrent = array->raw_values() - mFirstIndex;
     mLast = mCurrent + array->length() + mFirstIndex;
   }
 
-  void prevChunk()
+  void prevChunk() const
   {
-    mCurrentChunk--;
     auto chunks = mColumn->data();
+    auto previousArray = std::static_pointer_cast<arrow_array_for_t<T>>(chunks->chunk(mCurrentChunk));
+    mFirstIndex -= previousArray->length();
+    mCurrentChunk--;
     auto array = std::static_pointer_cast<arrow_array_for_t<T>>(chunks->chunk(mCurrentChunk));
-    mFirstIndex -= array->length();
     mCurrent = array->raw_values() - mFirstIndex;
     mLast = mCurrent + array->length() + mFirstIndex;
   }
@@ -164,7 +167,7 @@ class ColumnIterator : ChunkingPolicy
   T const& operator*() const
   {
     if constexpr (ChunkingPolicy::chunked) {
-      if (O2_BUILTIN_UNLIKELY(((mCurrent + *mCurrentPos) > mLast))) {
+      if (O2_BUILTIN_UNLIKELY(((mCurrent + *mCurrentPos) >= mLast))) {
         nextChunk();
       }
     }
@@ -176,7 +179,7 @@ class ColumnIterator : ChunkingPolicy
   {
     // If we get outside range of the current chunk, go to the next.
     if constexpr (ChunkingPolicy::chunked) {
-      while (O2_BUILTIN_UNLIKELY((mCurrent + *mCurrentPos) > mLast)) {
+      while (O2_BUILTIN_UNLIKELY((mCurrent + *mCurrentPos) >= mLast)) {
         nextChunk();
       }
     }
@@ -237,24 +240,90 @@ struct DynamicColumn {
   static constexpr const char* const& label() { return INHERIT::mLabel; }
 };
 
-template <typename T>
-using is_not_persistent_t = typename std::decay_t<T>::persistent::type;
+template <typename INHERIT>
+struct IndexColumn {
+  using inherited_t = INHERIT;
+
+  using persistent = std::false_type;
+  static constexpr const char* const& label() { return INHERIT::mLabel; }
+};
+
+template <size_t START = 0, size_t END = (size_t)-1>
+struct Index : o2::soa::IndexColumn<Index<START, END>> {
+  using base = o2::soa::IndexColumn<Index<START, END>>;
+  constexpr inline static size_t start = START;
+  constexpr inline static size_t end = END;
+
+  Index() = default;
+  Index(arrow::Column const*)
+  {
+  }
+
+  constexpr inline size_t rangeStart()
+  {
+    return START;
+  }
+
+  constexpr inline size_t rangeEnd()
+  {
+    return END;
+  }
+
+  size_t index() const
+  {
+    return *rowIndex;
+  }
+
+  void setIndex(size_t* rowViewIndex)
+  {
+    rowIndex = rowViewIndex;
+  }
+
+  static constexpr const char* mLabel = "Index";
+  using type = size_t;
+
+  using bindings_t = typename o2::framework::pack<>;
+  std::tuple<> boundIterators;
+  size_t* rowIndex;
+};
 
 template <typename T>
-using is_persistent_t = std::is_same<typename std::decay_t<T>::persistent::type, std::false_type>;
+using is_dynamic_t = framework::is_specialization<typename T::base, DynamicColumn>;
+
+template <typename T>
+using is_persistent_t = typename std::decay_t<T>::persistent::type;
+
+template <typename T, template <auto...> class Ref>
+struct is_index : std::false_type {
+};
+
+template <template <auto...> class Ref, auto... Args>
+struct is_index<Ref<Args...>, Ref> : std::true_type {
+};
+
+template <typename T>
+using is_index_t = is_index<T, Index>;
 
 template <typename... C>
 struct RowView : public C... {
  public:
-  using persistent_columns_t = framework::filtered_pack<is_not_persistent_t, C...>;
-  using dynamic_columns_t = framework::filtered_pack<is_persistent_t, C...>;
+  using persistent_columns_t = framework::selected_pack<is_persistent_t, C...>;
+  using dynamic_columns_t = framework::selected_pack<is_dynamic_t, C...>;
+  using index_columns_t = framework::selected_pack<is_index_t, C...>;
+  constexpr inline static bool no_index_v = std::is_same_v<index_columns_t, framework::pack<>>;
 
   RowView(std::tuple<std::pair<C*, arrow::Column*>...> const& columnIndex, size_t numRows)
     : C(std::get<std::pair<C*, arrow::Column*>>(columnIndex).second)...
   {
     bindIterators(persistent_columns_t{});
     bindAllDynamicColumns(dynamic_columns_t{});
-    mMaxRow = numRows;
+    if constexpr (no_index_v == false) {
+      mRowIndex = this->rangeStart();
+      mMaxRow = std::min(this->rangeEnd(), numRows);
+    } else {
+      mRowIndex = 0;
+      mMaxRow = numRows;
+    }
   }
 
   RowView(RowView<C...> const& other)
@@ -346,6 +415,7 @@ struct RowView : public C... {
   size_t mRowIndex = 0;
   size_t mMaxRow = 0;
   /// Helper to move to the correct chunk, if needed.
+  /// FIXME: not needed?
   template <typename... PC>
   void checkNextChunk(framework::pack<PC...> pack)
   {
@@ -373,6 +443,9 @@ struct RowView : public C... {
   {
     using namespace o2::soa;
     (bindDynamicColumn<DC>(typename DC::bindings_t{}), ...);
+    if constexpr (no_index_v == false) {
+      this->setIndex(&mRowIndex);
+    }
   }
 
   template <typename DC, typename... B>
@@ -380,6 +453,11 @@ struct RowView : public C... {
   {
     DC::boundIterators = std::make_tuple(&(B::mColumnIterator)...);
   }
+};
+
+struct ArrowHelpers {
+  static std::shared_ptr<arrow::Table> joinTables(std::vector<std::shared_ptr<arrow::Table>>&& tables);
+  static std::shared_ptr<arrow::Table> concatTables(std::vector<std::shared_ptr<arrow::Table>>&& tables);
 };
 
 /// A Table class which observes an arrow::Table and provides
@@ -470,7 +548,7 @@ struct FilterPersistentColumns {
 template <typename... C>
 struct FilterPersistentColumns<soa::Table<C...>> {
   using columns = typename soa::Table<C...>::columns;
-  using persistent_columns_pack = framework::filtered_pack<is_not_persistent_t, C...>;
+  using persistent_columns_pack = framework::selected_pack<is_persistent_t, C...>;
   using persistent_table_t = typename PackToTable<persistent_columns_pack>::table;
 };
 
@@ -497,6 +575,7 @@ class TableMetadata
 #define DECLARE_SOA_COLUMN(_Name_, _Getter_, _Type_, _Label_)                  \
   struct _Name_ : o2::soa::Column<_Type_, _Name_> {                            \
     static constexpr const char* mLabel = _Label_;                             \
+    using base = o2::soa::Column<_Type_, _Name_>;                              \
     using type = _Type_;                                                       \
     using column_t = _Name_;                                                   \
     _Name_(arrow::Column const* column)                                        \
@@ -604,5 +683,49 @@ class TableMetadata
   struct MetadataTrait<_Name_::iterator> {                             \
     using metadata = _Name_##Metadata;                                 \
   }
+
+namespace o2::soa
+{
+
+template <typename... C1, typename... C2>
+constexpr auto join(o2::soa::Table<C1...>&& t1, o2::soa::Table<C2...>&& t2)
+{
+  return o2::soa::Table<C1..., C2...>(ArrowHelpers::joinTables({t1.asArrowTable(), t2.asArrowTable()}));
+}
+
+template <typename T1, typename T2>
+constexpr auto concat(T1&& t1, T2&& t2)
+{
+  using table_t = typename PackToTable<framework::intersected_pack_t<typename T1::columns, typename T2::columns>>::table;
+  return table_t(ArrowHelpers::concatTables({t1.asArrowTable(), t2.asArrowTable()}));
+}
+
+template <typename T1, typename T2>
+using JoinBase = decltype(join(std::declval<T1>(), std::declval<T2>()));
+
+template <typename T1, typename T2>
+using ConcatBase = decltype(concat(std::declval<T1>(), std::declval<T2>()));
+
+template <typename T1, typename T2>
+struct Join : JoinBase<T1, T2> {
+  Join(std::shared_ptr<arrow::Table> t1, std::shared_ptr<arrow::Table> t2)
+    : JoinBase<T1, T2>{ArrowHelpers::joinTables({t1, t2})} {}
+
+  using left_t = T1;
+  using right_t = T2;
+  using table_t = JoinBase<T1, T2>;
+};
+
+template <typename T1, typename T2>
+struct Concat : ConcatBase<T1, T2> {
+  Concat(std::shared_ptr<arrow::Table> t1, std::shared_ptr<arrow::Table> t2)
+    : ConcatBase<T1, T2>{ArrowHelpers::concatTables({t1, t2})} {}
+
+  using left_t = T1;
+  using right_t = T2;
+  using table_t = ConcatBase<T1, T2>;
+};
+
+} // namespace o2::soa
 
 #endif // O2_FRAMEWORK_ASOA_H_

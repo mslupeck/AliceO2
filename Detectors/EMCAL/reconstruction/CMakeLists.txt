@@ -11,10 +11,19 @@
 
 o2_add_library(EMCALReconstruction
                SOURCES src/RawReaderFile.cxx
+                       src/RawReaderMemory.cxx
                        src/RawBuffer.cxx
+                       src/RawHeaderStream.cxx
                        src/RAWDataHeader.cxx
+                       src/RawPayload.cxx
                        src/AltroDecoder.cxx
+                       src/RCUTrailer.cxx
+                       src/Bunch.cxx
+                       src/Channel.cxx
                        src/Mapper.cxx
+                       src/CaloFitResults.cxx
+                       src/CaloRawFitter.cxx
+                       src/CaloRawFitterStandard.cxx
                PUBLIC_LINK_LIBRARIES FairRoot::Base O2::Headers
                                      AliceO2::InfoLogger
                                      O2::DataFormatsEMCAL
@@ -23,8 +32,17 @@ o2_add_library(EMCALReconstruction
 o2_target_root_dictionary(
                           EMCALReconstruction
                           HEADERS include/EMCALReconstruction/RawReaderFile.h
+                                  include/EMCALReconstruction/RawReaderMemory.h
                                   include/EMCALReconstruction/AltroDecoder.h
-                                  include/EMCALReconstruction/Mapper.h)
+                                  include/EMCALReconstruction/RCUTrailer.h
+                                  include/EMCALReconstruction/RawPayload.h
+                                  include/EMCALReconstruction/Bunch.h
+                                  include/EMCALReconstruction/Channel.h
+                                  include/EMCALReconstruction/RAWDataHeader.h
+                                  include/EMCALReconstruction/Mapper.h
+                                  include/EMCALReconstruction/CaloFitResults.h
+                                  include/EMCALReconstruction/CaloRawFitter.h
+                                  include/EMCALReconstruction/CaloRawFitterStandard.h)
 
 o2_add_executable(rawreader-file
                   COMPONENT_NAME emcal
@@ -35,6 +53,6 @@ o2_data_file(COPY files DESTINATION Detectors/EMC)
 
 o2_add_test(Mapper
             SOURCES test/testMapper.cxx
-            PUBLIC_LINK_LIBRARIES O2::EMCALReconstruction
+            PUBLIC_LINK_LIBRARIES O2::EMCALReconstruction O2::Headers
             COMPONENT_NAME emcal
             LABELS emcal)

@@ -8,19 +8,6 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef STEER_DIGITIZERWORKFLOW_FITDIGITWRITER_H_
-#define STEER_DIGITIZERWORKFLOW_FITDIGITWRITER_H_
+#include "ZDCSimulation/ZDCSimParam.h"
 
-#include "Framework/DataProcessorSpec.h"
-
-namespace o2
-{
-namespace fit
-{
-
-o2::framework::DataProcessorSpec getFT0DigitWriterSpec();
-
-} // namespace fit
-} // end namespace o2
-
-#endif /* STEER_DIGITIZERWORKFLOW_ITSMFTDIGITWRITER_H_ */
+O2ParamImpl(o2::zdc::ZDCSimParam);
