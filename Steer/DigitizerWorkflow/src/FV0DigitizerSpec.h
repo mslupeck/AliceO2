@@ -19,9 +19,8 @@ namespace o2
     {
 
         o2::framework::DataProcessorSpec getFV0DigitizerSpec(int channel);
-//o2::framework::DataProcessorSpec getFV0DigitizerSpec(int channel);
 
-    } // end namespace fit
+    } // end namespace fV0
 } // end namespace o2
 
 #endif /* STEER_DIGITIZERWORKFLOW_FITDIGITIZER_H_ */
