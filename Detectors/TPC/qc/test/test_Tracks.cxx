@@ -7,25 +7,16 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef O2_FRAMEWORK_BASICOPS_H_
-#define O2_FRAMEWORK_BASICOPS_H_
 
-namespace o2::framework
+#define BOOST_TEST_MODULE Test TPC QC
+#define BOOST_TEST_MAIN
+#define BOOST_TEST_DYN_LINK
+#include <boost/test/unit_test.hpp>
+#include "DataFormatsTPC/Defs.h"
+#include "TPCQC/Tracks.h"
+#include <cmath>
+
+BOOST_AUTO_TEST_CASE(ReadWriteROOTFile)
 {
-enum BasicOp : unsigned int {
-  LogicalAnd,
-  LogicalOr,
-  Addition,
-  Subtraction,
-  Division,
-  Multiplication,
-  LessThan,
-  LessThanOrEqual,
-  GreaterThan,
-  GreaterThanOrEqual,
-  Equal,
-  NotEqual
-};
-} // namespace o2::framework
-
-#endif // O2_FRAMEWORK_BASICOPS_H_
+  o2::tpc::qc::Tracks tracks;
+}
