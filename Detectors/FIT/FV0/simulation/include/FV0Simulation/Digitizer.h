@@ -20,6 +20,7 @@
 #include "FV0Simulation/DigitizationParameters.h"
 #include <TH1F.h>
 #include "MathUtils/CachingTF1.h"
+#include "MathUtils/RandomRing.h"//added by a.khuntia
 
 namespace o2
 {
@@ -28,7 +29,15 @@ namespace o2
         class Digitizer
         {
         public:
-            Digitizer(const DigitizationParameters& params, Int_t mode = 0) : mMode(mode), parameters(params),mTime(1000) { init(); };
+            Digitizer(const DigitizationParameters& params, Int_t mode = 0)
+            :mMode(mode),
+            parameters(params),
+            mTime(48),
+            mPMResponse()
+            {
+                init();
+            };
+
             ~Digitizer() = default;
 
             //void process(const std::vector<HitType>* hits, std::vector<Digit>* digits);
@@ -54,7 +63,7 @@ namespace o2
             void setTriggers(o2::fv0::Digit* digit);
             Int_t SimulateLightYield(Int_t pmt, Int_t nPhot);//fdd
             Float_t SimulateTimeCFD(Int_t channel);//fdd
-            Double_t PMResponse(Double_t* x, Double_t* par);//fdd
+            static Float_t PMResponse(const Float_t* x, const Float_t* par);//fdd
             Double_t SinglePhESpectrum(Double_t* x, Double_t* par);//fdd
             //void smearCFDtime(o2::fv0::Digit* digit, std::vector<std::vector<double>> const& channel_times);
 
@@ -85,15 +94,6 @@ namespace o2
             std::unique_ptr<o2::base::CachingTF1> mPMResponse;        // function which describes the PM time response
             std::unique_ptr<o2::base::CachingTF1> mSinglePhESpectrum; // function which describes the single ph.e. PM response
             std::unique_ptr<o2::base::CachingTF1> mSignalShape;
-            //static constexpr Float_t A_side_cable_cmps = 11.08; //ns
-
-            //TH1F* mHist;      // ("time_histogram", "", 1000, -0.5 * signal_width, 0.5 * signal_width);
-            //TH1F* mHistsum;   //("time_sum", "", 1000, -0.5 * signal_width, 0.5 * signal_width);
-            //TH1F* mHistshift; //("time_shift", "", 1000, -0.5 * signal_width, 0.5 * signal_width);
-
-            //static constexpr Float_t signal_width = 5.;         // time gate for signal, ns
-
-            //static std::vector<double> aggregate_channels(const std::vector<o2::fit::HitType>& hits, DigitizationParameters const& parameters);
 
             ClassDefNV(Digitizer, 2);//fdd
         };

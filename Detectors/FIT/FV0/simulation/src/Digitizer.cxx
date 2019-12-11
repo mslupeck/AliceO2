@@ -20,13 +20,23 @@
 #include <iostream>
 #include <optional>
 #include "MathUtils/CachingTF1.h"
+#include <boost/format.hpp>
+
+
 
 using namespace o2::fv0;
-//using o2::fit::Geometry;
+using namespace o2::math_utils;
+using boost::format;
 
 ClassImp(Digitizer);
 
 
+float drawGaus(o2::math_utils::RandomRing<>& normaldistRing, float mu, float sigma)
+{
+    // this is using standard normally distributed random numbers and rescaling to make
+    // them gaussian distributed with general mu and sigma
+    return mu + sigma * normaldistRing.getNextValue();
+}
 
 void Digitizer::process(const std::vector<o2::fv0::Hit>* hits, o2::fv0::Digit* digit, std::vector<std::vector<double>>& channel_times)
 
@@ -54,7 +64,10 @@ void Digitizer::process(const std::vector<o2::fv0::Hit>* hits, o2::fv0::Digit* d
    // if (channel_times.size() == 0)
      //   channel_times.resize(parameters.mMCPs);
     Int_t parent = -10;
+    Float_t const pmtime=parameters.mPMTransitTime;
+    //Float_t integral = mPMResponse->Integral(-pmtime, 2. * pmtime);
     Float_t integral = mPMResponse->Integral(-parameters.mPMTransitTime, 2. * parameters.mPMTransitTime);
+    //LOG(INFO)<<"integral \t" <<integral;
     Float_t meansPhE = mSinglePhESpectrum->Mean(0, 30);
     //LOG(INFO)<<"Single photo electron spectrum \t" <<meansPhE;
     for (Int_t i = 0; i < parameters.mMCPs; i++)
@@ -65,8 +78,8 @@ void Digitizer::process(const std::vector<o2::fv0::Hit>* hits, o2::fv0::Digit* d
     for (auto const& hit : sorted_hits) {
         Int_t const  pmt = hit.GetDetectorID();
        // LOG(INFO)<<"pmt ========="<< pmt;
-        Double_t const hitValue = hit.GetHitValue()*1000;//convert to MeV
-        if (hitValue < 6.0) continue;
+        Double_t const hitValue = hit.GetHitValue()*1e3;//convert to MeV
+        if (hitValue < 3.0) continue;
         Double_t const nPhoton = hitValue*10400;
         Int_t const nPhE = SimulateLightYield(pmt,nPhoton);
         Float_t const dt_scintillator = gRandom->Gaus(0, parameters.mIntTimeRes);
@@ -84,7 +97,8 @@ void Digitizer::process(const std::vector<o2::fv0::Hit>* hits, o2::fv0::Digit* d
             //LOG(INFO) << "firstBin = "<<firstBin<<" lastbin "<<lastBin<<FairLogger::endl;
             for (Int_t iBin = firstBin; iBin <= lastBin; ++iBin) {
                 Float_t const tempT = mBinSize * (0.5 + iBin) - tPhE;
-                mTime[pmt][iBin] += gainVar * charge * mPMResponse->Eval(tempT);
+                //mTime[pmt][iBin] += gainVar * charge * mPMResponse->Eval(tempT);
+                mTime[pmt][iBin] += gainVar * charge * PMResponse(&tempT,&parameters.mPMTransitTime);
                 //LOG(INFO)<<"mTime"<<mBinSize*(0.5 + iBin) ;
             }
         }//photo electron loop
@@ -145,11 +159,11 @@ Int_t Digitizer::SimulateLightYield(Int_t pmt, Int_t nPhot)
     return n;
 }
 //_____________________________________________________________________________
-Double_t Digitizer::PMResponse(Double_t* x, Double_t*)
+Float_t Digitizer::PMResponse(const Float_t* x, const Float_t* t)
 {
     // this function describes the PM time response to a single photoelectron
-    Double_t y = x[0] + parameters.mPMTransitTime;
-    return y * y * TMath::Exp(-y * y / (parameters.mPMTransitTime * parameters.mPMTransitTime));
+    Float_t const y = x[0] + t[0];//parameters.mPMTransitTime;
+    return y * y * TMath::Exp(-y * y / (t[0] * t[0]));
 }
 //_____________________________________________________________________________
 Double_t Digitizer::SinglePhESpectrum(Double_t* x, Double_t*)
@@ -179,15 +193,24 @@ void Digitizer::initParameters()
 void Digitizer::init()
 {
     std::cout << " @@@ V0Digitizer::init " << std::endl;
+    const float y=parameters.mPMTransitTime;
+    format pmresponse("(x+%1%)*(x+%2%)*TMath::Exp(-(x+%3%)*(x+%4%)/(%5% * %6%))");
+    pmresponse %y%y%y%y%y%y;
+    std::string name = pmresponse.str();
+
     mNBins = 2000;           //Will be computed using detector set-up from CDB
     mBinSize = 25.0 / 256.0; //Will be set-up from CDB
+
     for (Int_t i = 0; i < parameters.mMCPs; i++)
         mTime[i].resize(mNBins);
         mTimeCFD.resize(mNBins);
+
     if (!mPMResponse)
-        mPMResponse = std::make_unique<o2::base::CachingTF1>
-                ("mPMResponse", this, &Digitizer::PMResponse,
-                         -parameters.mPMTransitTime, 2. * parameters.mPMTransitTime, 0);
+    {
+        mPMResponse = std::make_unique<o2::base::CachingTF1>("mPMResponse",name.c_str(),-y,2*y);
+        mPMResponse->SetNpx(100);
+    }
+
     if (!mSinglePhESpectrum)
     mSinglePhESpectrum = std::make_unique<o2::base::CachingTF1>
                          ("mSinglePhESpectrum", this, &Digitizer::SinglePhESpectrum, 0, 30, 0);

@@ -63,7 +63,7 @@ UpdateType: git
 
 # Compiler info
 Compiler: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++
-CompilerVersion: 10.0.1.10010046
+CompilerVersion: 11.0.0.11000033
 
 # Dynamic analysis (MemCheck)
 PurifyCommand: 
