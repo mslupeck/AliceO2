@@ -1,3 +1,7 @@
+//
+// Created by Arvind Khuntia on 26/08/19.
+//
+
 // Copyright CERN and copyright holders of ALICE O2. This software is
 // distributed under the terms of the GNU General Public License v3 (GPL
 // Version 3), copied verbatim in the file "COPYING".
@@ -8,15 +12,20 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+#include "DataFormatsFV0/Digit.h"
+#include <iostream>
+#include <iosfwd>
+#include "Rtypes.h"
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+using namespace o2::fv0;
 
-#pragma link C++ class o2::fv0::Detector + ;
-#pragma link C++ class o2::base::DetImpl < o2::fv0::Detector> + ;
-#pragma link C++ class o2::fv0::Digitizer + ;
-#pragma link C++ class o2::fv0::DigitizationParameters + ;
+void Digit::printStream(std::ostream& stream) const
+{
+  stream << "FV0 Digit: event time " << mTime << " BC " << mIntRecord.bc << " orbit " << mIntRecord.orbit << std::endl;
+}
 
-#endif
+std::ostream& operator<<(std::ostream& stream, const Digit& digi)
+{
+  digi.printStream(stream);
+  return stream;
+}
