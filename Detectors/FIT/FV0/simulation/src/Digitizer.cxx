@@ -31,13 +31,6 @@ using boost::format;
 ClassImp(Digitizer);
 
 
-float drawGaus(o2::math_utils::RandomRing<>& normaldistRing, float mu, float sigma)
-{
-    // this is using standard normally distributed random numbers and rescaling to make
-    // them gaussian distributed with general mu and sigma
-    return mu + sigma * normaldistRing.getNextValue();
-}
-
 void Digitizer::process(const std::vector<o2::fv0::Hit>* hits, o2::fv0::Digit* digit, std::vector<std::vector<double>>& channel_times)
 
 {
@@ -57,11 +50,6 @@ void Digitizer::process(const std::vector<o2::fv0::Hit>* hits, o2::fv0::Digit* d
         for (int i = 0; i < parameters.mMCPs; ++i)
             channel_data.emplace_back(o2::fv0::ChannelData{i,0, 0});
     }
-
-    //for (Int_t i=0;i<parameters.NcellsA)
-      //  std::fill(mTime[i].begin(),mTime.end(),0);
-
-   // if (channel_times.size() == 0)
      //   channel_times.resize(parameters.mMCPs);
     Int_t parent = -10;
     Float_t const pmtime=parameters.mPMTransitTime;
@@ -85,8 +73,6 @@ void Digitizer::process(const std::vector<o2::fv0::Hit>* hits, o2::fv0::Digit* d
         Float_t const dt_scintillator = gRandom->Gaus(0, parameters.mIntTimeRes);
         Float_t const t = dt_scintillator + hit.GetTime()*1e9;
         //LOG(INFO) << "dt_scintillator = "<<dt_scintillator<<" t "<<t;
-        //LOG(INFO) << "Nphot = "<<nPhoton<<"  nPhE  "<<nPhE;
-        //LOG(INFO) << "NphE = " << nPhE << FairLogger::endl;
         Float_t charge = TMath::Qe() * parameters.mPmGain * mBinSize / integral;
         for (Int_t iPhE = 0; iPhE < nPhE; ++iPhE) {
             Float_t const tPhE = t + mSignalShape->GetRandom(0, mBinSize * Float_t(mNBins));

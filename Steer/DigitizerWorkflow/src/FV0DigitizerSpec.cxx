@@ -38,13 +38,17 @@ namespace o2
 // helper function which will be offered as a service
 //template <typename T>
 
-        class FITDPLDigitizerTask
+        class FV0DPLDigitizerTask
         {
 
         public:
-            explicit FITDPLDigitizerTask(o2::fv0::DigitizationParameters const& parameters)
-                    : mDigitizer(parameters) {}
-            ~FITDPLDigitizerTask() = default;
+            FV0DPLDigitizerTask(): mDigitizer(o2::fv0::DigitizationParameters{}){}
+            explicit FV0DPLDigitizerTask(o2::fv0::DigitizationParameters const& parameters)
+                    : mDigitizer(parameters)
+                    {};
+            ~FV0DPLDigitizerTask() = default;
+            static constexpr o2::detectors::DetID::ID DETID = o2::detectors::DetID::FV0;
+            static constexpr o2::header::DataOrigin DETOR = o2::header::gDataOriginFV0;
 
             void init(framework::InitContext& ic)
             {
@@ -61,11 +65,7 @@ namespace o2
                     mSimChains.emplace_back(new TChain("o2sim"));
                     mSimChains.back()->AddFile(signalfilename.c_str());
                 }
-
-                static constexpr o2::detectors::DetID::ID DETID = o2::detectors::DetID::FV0;
-                if (mID == o2::detectors::DetID::FV0) {
-                    mDigitizer.initParameters();
-                }
+                mDigitizer.initParameters();
                 const bool isContinuous = ic.options().get<int>("pileup");
             }
 
@@ -136,11 +136,11 @@ namespace o2
 
                 // here we have all digits and we can send them to consumer (aka snapshot it onto output)
                 LOG(INFO) << "FV0: Sending " << digitAccum.size() << " digits";//FDD
-                pc.outputs().snapshot(Output{mOrigin, "DIGITS", 0, Lifetime::Timeframe}, digitAccum);
-                pc.outputs().snapshot(Output{mOrigin, "DIGITSMCTR", 0, Lifetime::Timeframe}, labelAccum);
+                pc.outputs().snapshot(Output{"FV0", "DIGITS", 0, Lifetime::Timeframe}, digitAccum);
+                pc.outputs().snapshot(Output{"FV0", "DIGITSMCTR", 0, Lifetime::Timeframe}, labelAccum);
 
                 LOG(INFO) << "FIT: Sending ROMode= " << mROMode << " to GRPUpdater";
-                pc.outputs().snapshot(Output{mOrigin, "ROMode", 0, Lifetime::Timeframe}, mROMode);
+                pc.outputs().snapshot(Output{"FV0", "ROMode", 0, Lifetime::Timeframe}, mROMode);
                 timer.Stop();
                 LOG(INFO) << "Digitization took " << timer.CpuTime() << "s";
 
@@ -153,7 +153,7 @@ namespace o2
         protected:
             Bool_t mContinuous = kFALSE;  ///< flag to do continuous simulation
             double mFairTimeUnitInNS = 1; ///< Fair time unit in ns
-            o2::detectors::DetID mID;
+            o2::detectors::DetID mID=DETID;
             o2::header::DataOrigin mOrigin = o2::header::gDataOriginInvalid;
             o2::fv0::Digitizer mDigitizer; ///< Digitizer
 
@@ -180,21 +180,6 @@ namespace o2
             }
         };
 
-        class FV0DPLDigitizerTask : public FITDPLDigitizerTask
-        {
-        public:
-            // FIXME: origina should be extractable from the DetID, the problem is 3d party header dependencies
-            static constexpr o2::detectors::DetID::ID DETID = o2::detectors::DetID::FV0;
-            static constexpr o2::header::DataOrigin DETOR = o2::header::gDataOriginFV0;
-            FV0DPLDigitizerTask() : FITDPLDigitizerTask{o2::fv0::DigitizationParameters()}
-            {
-                mID = DETID;
-                mOrigin = DETOR;
-            }
-        };
-
-        constexpr o2::detectors::DetID::ID FV0DPLDigitizerTask::DETID;
-        constexpr o2::header::DataOrigin FV0DPLDigitizerTask::DETOR;
 
         o2::framework::DataProcessorSpec getFV0DigitizerSpec(int channel)
         {
