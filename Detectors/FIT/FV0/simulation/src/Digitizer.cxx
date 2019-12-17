@@ -86,7 +86,7 @@ void Digitizer::process(const std::vector<o2::fv0::Hit>* hits, o2::fv0::Digit* d
                 //mTime[pmt][iBin] += gainVar * charge * mPMResponse->Eval(tempT);
                 mTime[pmt][iBin] += gainVar * charge * PMResponse(&tempT,&parameters.mPMTransitTime);
                 //LOG(INFO)<<"mTime"<<mBinSize*(0.5 + iBin) ;
-            }
+                }
         }//photo electron loop
 
         //charge particles in MCLabel
@@ -94,7 +94,6 @@ void Digitizer::process(const std::vector<o2::fv0::Hit>* hits, o2::fv0::Digit* d
         if (parentID != parent) {
             o2::fv0::MCLabel label(hit.GetTrackID(), mEventID, mSrcID, pmt);
             //LOG(INFO)<<"o2::fv0::MCLabel"<< hit.GetTrackID()<<"   "<<mEventID<<"  "<<mSrcID<<"  "<<pmt;
-
             int lblCurrent;
             if (mMCLabels) {
                 lblCurrent = mMCLabels->getIndexedSize(); // this is the size of mHeaderArray;
@@ -168,8 +167,6 @@ void Digitizer::setTriggers(o2::fv0::Digit* digit)
 {
     // --------------------------------------------------------------------------
 }// trigger
-
-
 
 void Digitizer::initParameters()
 {

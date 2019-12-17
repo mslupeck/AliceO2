@@ -42,10 +42,10 @@ namespace o2
         {
 
         public:
-            FV0DPLDigitizerTask(): mDigitizer(o2::fv0::DigitizationParameters{}){}
-            explicit FV0DPLDigitizerTask(o2::fv0::DigitizationParameters const& parameters)
-                    : mDigitizer(parameters)
-                    {};
+            //FV0DPLDigitizerTask(): mDigitizer(o2::fv0::DigitizationParameters{}){}
+            //explicit FV0DPLDigitizerTask(o2::fv0::DigitizationParameters const& parameters)
+                 //   : mDigitizer(parameters)
+                   // {};
             ~FV0DPLDigitizerTask() = default;
             static constexpr o2::detectors::DetID::ID DETID = o2::detectors::DetID::FV0;
             static constexpr o2::header::DataOrigin DETOR = o2::header::gDataOriginFV0;
@@ -65,7 +65,10 @@ namespace o2
                     mSimChains.emplace_back(new TChain("o2sim"));
                     mSimChains.back()->AddFile(signalfilename.c_str());
                 }
-                mDigitizer.initParameters();
+                o2::fv0::DigitizationParameters const& parameters={};
+                mDigitizer=std::make_unique<Digitizer>(parameters,0);
+
+                mDigitizer->initParameters();
                 const bool isContinuous = ic.options().get<int>("pileup");
             }
 
@@ -97,15 +100,15 @@ namespace o2
                 o2::dataformats::MCTruthContainer<o2::fv0::MCLabel> labels;
                 o2::fv0::Digit digit;
                 std::vector<o2::fv0::Digit> digitAccum; // digit accumulator
-                mDigitizer.setMCLabels(&labels);
+                mDigitizer->setMCLabels(&labels);
 
 
                 auto& eventParts = context->getEventParts();
                 // loop over all composite collisions given from context
                 // (aka loop over all the interaction records)
                 for (int collID = 0; collID < timesview.size(); ++collID) {
-                    mDigitizer.setEventTime(timesview[collID].timeNS);
-                    mDigitizer.setInteractionRecord(timesview[collID]);
+                    mDigitizer->setEventTime(timesview[collID].timeNS);
+                    mDigitizer->setInteractionRecord(timesview[collID]);
                     digit.cleardigits();
                     std::vector<std::vector<double>> channel_times;
                     // for each collision, loop over the constituents event and source IDs
@@ -122,7 +125,7 @@ namespace o2
                         labels.clear();
                         // digits.clear();
 
-                        mDigitizer.process(&hits, &digit, channel_times);
+                        mDigitizer->process(&hits, &digit, channel_times);
                         labelAccum.mergeAtBack(labels);//Fdd
                         //mDigitizer.setTriggers(&digit);//FDD
                         digitAccum.push_back(digit); // we should move it there actually
@@ -155,7 +158,7 @@ namespace o2
             double mFairTimeUnitInNS = 1; ///< Fair time unit in ns
             o2::detectors::DetID mID=DETID;
             o2::header::DataOrigin mOrigin = o2::header::gDataOriginInvalid;
-            o2::fv0::Digitizer mDigitizer; ///< Digitizer
+            std::unique_ptr<o2::fv0::Digitizer> mDigitizer; ///< Digitizer
 
             //Digitizer mV0Digitizer; ///< Digitizer
             // RS: at the moment using hardcoded flag for continuos readout
