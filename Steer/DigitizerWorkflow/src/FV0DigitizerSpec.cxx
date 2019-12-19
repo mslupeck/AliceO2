@@ -125,6 +125,9 @@ namespace o2
                         labels.clear();
                         // digits.clear();
 
+                        mDigitizer->setEventID(collID);
+                        mDigitizer->setSrcID(part.sourceID);
+
                         mDigitizer->process(&hits, &digit, channel_times);
                         labelAccum.mergeAtBack(labels);//Fdd
                         //mDigitizer.setTriggers(&digit);//FDD

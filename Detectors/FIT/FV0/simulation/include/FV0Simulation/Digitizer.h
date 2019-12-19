@@ -70,7 +70,7 @@ namespace o2
             void init();
             void finish();
 
-            void setMCLabels(o2::dataformats::MCTruthContainer<o2::fv0::MCLabel>* mclb) { mMCLabels = mclb; }
+            void setMCLabels(o2::dataformats::MCTruthContainer<o2::fv0::MCLabel>* mclb) {mMCLabels = mclb; }
             //double get_time(const std::vector<double>& times);
 
         private:
