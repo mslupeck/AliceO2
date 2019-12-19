@@ -61,6 +61,7 @@ EventHeader makeGBTHeader(int link, o2::InteractionRecord const& mIntRecord);
 
 Digits2Raw::Digits2Raw(const std::string fileRaw, std::string fileDigitsName)
 {
+
     mFileDest.exceptions(std::ios_base::failbit | std::ios_base::badbit);
     mFileDest.open(fileRaw, std::fstream::out | std::fstream::binary);
     Digits2Raw::readDigits(fileDigitsName.c_str());
