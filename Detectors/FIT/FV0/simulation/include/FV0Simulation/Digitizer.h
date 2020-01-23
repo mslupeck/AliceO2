@@ -21,6 +21,7 @@
 #include <TH1F.h>
 #include "MathUtils/CachingTF1.h"
 #include "MathUtils/RandomRing.h"//added by a.khuntia
+#include <TStopwatch.h>
 
 namespace o2
 {
@@ -94,6 +95,8 @@ namespace o2
             std::unique_ptr<o2::base::CachingTF1> mPMResponse;        // function which describes the PM time response
             std::unique_ptr<o2::base::CachingTF1> mSinglePhESpectrum; // function which describes the single ph.e. PM response
             std::unique_ptr<o2::base::CachingTF1> mSignalShape;
+
+            TStopwatch mTimer;
 
             ClassDefNV(Digitizer, 2);//fdd
         };

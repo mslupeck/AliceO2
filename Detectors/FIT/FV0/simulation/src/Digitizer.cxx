@@ -64,12 +64,15 @@ void Digitizer::process(const std::vector<o2::fv0::Hit>* hits, o2::fv0::Digit* d
     assert(digit->getChDgData().size() == parameters.mMCPs);
 
     for (auto const& hit : sorted_hits) {
+    	mTimer.Start();
         Int_t const  pmt = hit.GetDetectorID();
        // LOG(INFO)<<"pmt ========="<< pmt;
         Double_t const hitValue = hit.GetHitValue()*1e3;//convert to MeV
         if (hitValue < 3.0) continue;
         Double_t const nPhoton = hitValue*10400;
+        LOG(INFO) << "[FV0]processHit nPhoton=" << nPhoton;
         Int_t const nPhE = SimulateLightYield(pmt,nPhoton);
+        LOG(INFO) << "[FV0]processHit nPhE=" << nPhE;
         Float_t const dt_scintillator = gRandom->Gaus(0, parameters.mIntTimeRes);
         Float_t const t = dt_scintillator + hit.GetTime()*1e9;
         //LOG(INFO) << "dt_scintillator = "<<dt_scintillator<<" t "<<t;
@@ -80,6 +83,7 @@ void Digitizer::process(const std::vector<o2::fv0::Hit>* hits, o2::fv0::Digit* d
             Float_t const gainVar = mSinglePhESpectrum->GetRandom(0, 30) / meansPhE;
             Int_t const firstBin = TMath::Max((UInt_t)0, (UInt_t)((tPhE - parameters.mPMTransitTime) / mBinSize));
             Int_t const lastBin = TMath::Min(mNBins - 1, (UInt_t)((tPhE + 2. * parameters.mPMTransitTime) / mBinSize));
+            //LOG(INFO) << "[FV0]processHit nBins=" << lastBin-firstBin;
             //LOG(INFO) << "firstBin = "<<firstBin<<" lastbin "<<lastBin<<FairLogger::endl;
             for (Int_t iBin = firstBin; iBin <= lastBin; ++iBin) {
                 Float_t const tempT = mBinSize * (0.5 + iBin) - tPhE;
@@ -88,6 +92,9 @@ void Digitizer::process(const std::vector<o2::fv0::Hit>* hits, o2::fv0::Digit* d
                 //LOG(INFO)<<"mTime"<<mBinSize*(0.5 + iBin) ;
                 }
         }//photo electron loop
+    	mTimer.Stop();
+        LOG(INFO) << "[FV0]processHit took " << mTimer.CpuTime() << " s";
+    	mTimer.Reset();
 
         //charge particles in MCLabel
         Int_t parentID = hit.GetTrackID();
